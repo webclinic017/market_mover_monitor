@@ -1,47 +1,117 @@
+from constant.indicator import Indicator
+from ibapi import contract
 from ibapi.client import EClient
+from ibapi.common import TickerId
 from ibapi.contract import Contract, ContractDetails
 from ibapi.scanner import ScannerSubscription
 from ibapi.wrapper import EWrapper
+
+import pandas as pd
+from pytz import timezone
 import time
+
+from utils.date_util import get_trading_interval
+from utils.file_util import clean_txt_file_content
+from utils.log_util import get_logger
+
+logger = get_logger()
 
 class IBConnector(EWrapper, EClient):
     def __init__(self):
-        #Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only notifications that a connection has been made successfully to the IB market data farms.
-        #EWrapper.__init__(self)
+        EWrapper.__init__(self)
         EClient.__init__(self, self)
-        self.__data = []
+        self.__ticker = ''
+        self.__datetime_list = []
+        self.__ohlcv_data_list = []
+        self.__scanner_ticker_list = []
+        self.__concat_df_list = []
+        self.__full_candle_df = None
+    
+    def error(self, reqId: TickerId, errorCode: int, errorString: str):
+        super().error(reqId, errorCode, errorString)
 
+        ''' Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only 
+        notification that a connector has been made successfully to the IB market data farms. '''
+        if errorCode == -1:
+            connect_success_msg = f'reqId: {reqId} Connect Success, {errorString}'
+            logger.debug(connect_success_msg)
+        else:
+            error_msg = f'reqId: {reqId}, Error Cause: {errorString}'
+            logger.exception(error_msg)
+
+    def clean_temp_data(self):
+        self.__ticker = ''
+        self.__scanner_ticker_list = []
+        self.__datetime_list = []
+        self.__ohlcv_data_list = []
+ 
     def historicalData(self, reqId, bar):
-        #print(f'Time: {bar.date} Close: {bar.close} Volume: {bar.volume}',reqId)
-        self.__data.append([bar.date, bar.close, bar.volume, reqId])
+        open = bar.open
+        high = bar.high
+        low = bar.low
+        close = bar.close
+        volume = bar.volume * 100
+        dt = bar.date
+
+        self.__ohlcv_data_list.append([open, high, low, close, volume])
+        self.__datetime_list.append(dt)
+
+    #Marks the ending of historical bars reception,
+    def historicalDataEnd(self, reqId: int, start: str, end: str):
+        ticker_to_indicator_column = pd.MultiIndex.from_product([[self.__ticker], [Indicator.OPEN, Indicator.HIGH, Indicator.LOW, Indicator.CLOSE, Indicator.VOLUME]])
+        datetime_index = pd.DatetimeIndex(self.__datetime_list)
+        individual_ticker_candle_df = pd.DataFrame(self.__ohlcv_data_list, columns=ticker_to_indicator_column, index=datetime_index)
+        self.__concat_df_list.append(individual_ticker_candle_df)
+        print(individual_ticker_candle_df)
+        print('get historical data end')
     
     #API Scanner subscriptions update every 30 seconds, just as they do in TWS.
+    #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...)
     def scannerData(self, reqId: int, rank: int, contractDetails: ContractDetails, distance: str, benchmark: str, projection: str, legsStr: str):
-        super().scannerData(reqId, rank, contractDetails, distance, benchmark, projection, legsStr)
-        print(f'Scanner Data ReqId: {reqId}, {contractDetails.contract}, Rank: {rank}')
+        print('scanning data')
+        self.__scanner_ticker_list.append(contractDetails.contract.symbol)
+    
+    def scannerDataEnd(self, reqId: int):
+        retrieve_candle_data_start_time = time.time()
+        self.__concat_df_list = []
+        logger.debug(f'reqId: {reqId}, Scanner Filtered Results: {self.__scanner_ticker_list}')
+
+        for index, ticker in enumerate(self.__scanner_ticker_list):
+            contract = Contract()
+            self.__ticker = ticker
+            contract.symbol = ticker
+            contract.secType = 'STK'
+            contract.exchange = 'SMART'
+            contract.currency = 'USD'
+
+            interval = get_trading_interval(timezone('US/Eastern'))
+            interval_str = str(interval) + ' S'
+            #self.reqHistoricalData(index + 1, contract, '', '1 D', "1 day", "TRADES", 0, 1, False, [])
+            self.reqHistoricalData(index + 1, contract, '', '1 D', "1 day", "TRADES", 1, 1, False, [])
+        #self.clean_temp_data()
+        #self.__full_candle_df = pd.concat(self.__concat_df_list)
+        #print(self.__full_candle_df)
+        
+        print(f'retrieve all candle time: {time.time() - retrieve_candle_data_start_time}')
 
 def main():
+    log_dir = 'log.txt'
+    clean_txt_file_content(log_dir)
     connector = IBConnector()
     connector.connect('127.0.0.1', 7496, 0)
-    print('after run')
 
     scannerFilter = ScannerSubscription()
+    #Top Gainers
     scannerFilter.scanCode = 'TOP_PERC_GAIN'
+    #US Stocks
     scannerFilter.instrument = 'STK'
+    #Exclude OTC Stocks
     scannerFilter.locationCode = 'STK.US.MAJOR' 
     scannerFilter.abovePrice = 0.3
     scannerFilter.aboveVolume = 10000
     scannerFilter.numberOfRows = 20
     
-    connector.reqScannerSubscription(1, scannerFilter, [], [])
-
-    '''contract = Contract()
-    contract.symbol = 'TSLA'
-    contract.secType = 'STK'
-    contract.exchange = 'SMART'
-    contract.currency = 'USD'
-    connector.reqHistoricalData(1, contract, '', "10 D", "1 day", "TRADES", 1, 1, False, [])'''
-
+    connector.reqScannerSubscription(0, scannerFilter, [], [])
     connector.run()
 
 main()

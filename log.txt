@@ -1,0 +1,15 @@
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Market data farm connection is OK:usfarm.nj (ERROR)
+NoneType: None
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Market data farm connection is OK:cashfarm (ERROR)
+NoneType: None
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Market data farm connection is OK:usfarm (ERROR)
+NoneType: None
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:euhmds (ERROR)
+NoneType: None
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:fundfarm (ERROR)
+NoneType: None
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:ushmds (ERROR)
+NoneType: None
+12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Sec-def data farm connection is OK:secdefil (ERROR)
+NoneType: None
+12/13/2021 08:30:00 PM - reqId: 0, Scanner Filtered Results: ['ARNA', 'FHTX', 'BLU', 'PTPI', 'NEW', 'RCAT', 'BLUE', 'HOG', 'AVCT', 'EDIT', 'MTP', 'SGMA', 'ESSC', 'BFRI', 'CCO', 'BORR', 'LCID', 'APVO', 'BOXL', 'BOIL'] (DEBUG)
