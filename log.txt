@@ -1,15 +1,16 @@
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Market data farm connection is OK:usfarm.nj (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: Market data farm connection is OK:usfarm.nj (ERROR)
 NoneType: None
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Market data farm connection is OK:cashfarm (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: Market data farm connection is OK:cashfarm (ERROR)
 NoneType: None
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Market data farm connection is OK:usfarm (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: Market data farm connection is OK:usfarm (ERROR)
 NoneType: None
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:euhmds (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:euhmds (ERROR)
 NoneType: None
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:fundfarm (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:fundfarm (ERROR)
 NoneType: None
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:ushmds (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: HMDS data farm connection is OK:ushmds (ERROR)
 NoneType: None
-12/13/2021 08:29:59 PM - reqId: -1, Error Cause: Sec-def data farm connection is OK:secdefil (ERROR)
+12/13/2021 11:42:12 PM - reqId: -1, Error Cause: Sec-def data farm connection is OK:secdefil (ERROR)
 NoneType: None
-12/13/2021 08:30:00 PM - reqId: 0, Scanner Filtered Results: ['ARNA', 'FHTX', 'BLU', 'PTPI', 'NEW', 'RCAT', 'BLUE', 'HOG', 'AVCT', 'EDIT', 'MTP', 'SGMA', 'ESSC', 'BFRI', 'CCO', 'BORR', 'LCID', 'APVO', 'BOXL', 'BOIL'] (DEBUG)
+12/13/2021 11:42:13 PM - reqId: 0, Scanner Filtered Results: ['NES', 'ARNA', 'BLU', 'FHTX', 'PTPI', 'RELI', 'TRHC', 'BFRI', 'ESSC', 'HCTI', 'DDL', 'TRQ', 'NEW', 'AVRO', 'HOG', 'NAUT', 'CLNN', 'GBOX', 'HUSN', 'XPRO'] (DEBUG)
+12/13/2021 11:42:43 PM - reqId: 0, Scanner Filtered Results: ['NES', 'ARNA', 'BLU', 'FHTX', 'PTPI', 'RELI', 'TRHC', 'BFRI', 'ESSC', 'HCTI', 'DDL', 'TRQ', 'NEW', 'AVRO', 'HOG', 'NAUT', 'CLNN', 'GBOX', 'HUSN', 'XPRO', 'NES', 'ARNA', 'BLU', 'FHTX', 'PTPI', 'RELI', 'TRHC', 'BFRI', 'ESSC', 'HCTI', 'DDL', 'TRQ', 'NEW', 'AVRO', 'HOG', 'NAUT', 'CLNN', 'GBOX', 'HUSN', 'XPRO'] (DEBUG)

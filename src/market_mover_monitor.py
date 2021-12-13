@@ -9,6 +9,8 @@ from ibapi.wrapper import EWrapper
 import pandas as pd
 from pytz import timezone
 import time
+import concurrent.futures
+import asyncio
 
 from utils.date_util import get_trading_interval
 from utils.file_util import clean_txt_file_content
@@ -20,10 +22,9 @@ class IBConnector(EWrapper, EClient):
     def __init__(self):
         EWrapper.__init__(self)
         EClient.__init__(self, self)
-        self.__ticker = ''
+        self.__scanner_ticker_list = []
         self.__datetime_list = []
         self.__ohlcv_data_list = []
-        self.__scanner_ticker_list = []
         self.__concat_df_list = []
         self.__full_candle_df = None
     
@@ -39,9 +40,7 @@ class IBConnector(EWrapper, EClient):
             error_msg = f'reqId: {reqId}, Error Cause: {errorString}'
             logger.exception(error_msg)
 
-    def clean_temp_data(self):
-        self.__ticker = ''
-        self.__scanner_ticker_list = []
+    def clean_temp_candle_data(self):
         self.__datetime_list = []
         self.__ohlcv_data_list = []
  
@@ -58,13 +57,15 @@ class IBConnector(EWrapper, EClient):
 
     #Marks the ending of historical bars reception,
     def historicalDataEnd(self, reqId: int, start: str, end: str):
-        ticker_to_indicator_column = pd.MultiIndex.from_product([[self.__ticker], [Indicator.OPEN, Indicator.HIGH, Indicator.LOW, Indicator.CLOSE, Indicator.VOLUME]])
+        ticker_to_indicator_column = pd.MultiIndex.from_product([[self.__scanner_ticker_list[reqId - 1]], [Indicator.OPEN, Indicator.HIGH, Indicator.LOW, Indicator.CLOSE, Indicator.VOLUME]])
         datetime_index = pd.DatetimeIndex(self.__datetime_list)
+        
         individual_ticker_candle_df = pd.DataFrame(self.__ohlcv_data_list, columns=ticker_to_indicator_column, index=datetime_index)
         self.__concat_df_list.append(individual_ticker_candle_df)
+        self.clean_temp_candle_data()
         print(individual_ticker_candle_df)
-        print('get historical data end')
-    
+        print('')
+
     #API Scanner subscriptions update every 30 seconds, just as they do in TWS.
     #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...)
     def scannerData(self, reqId: int, rank: int, contractDetails: ContractDetails, distance: str, benchmark: str, projection: str, legsStr: str):
@@ -72,13 +73,12 @@ class IBConnector(EWrapper, EClient):
         self.__scanner_ticker_list.append(contractDetails.contract.symbol)
     
     def scannerDataEnd(self, reqId: int):
-        retrieve_candle_data_start_time = time.time()
+        print('scan end start')
         self.__concat_df_list = []
         logger.debug(f'reqId: {reqId}, Scanner Filtered Results: {self.__scanner_ticker_list}')
 
         for index, ticker in enumerate(self.__scanner_ticker_list):
             contract = Contract()
-            self.__ticker = ticker
             contract.symbol = ticker
             contract.secType = 'STK'
             contract.exchange = 'SMART'
@@ -86,13 +86,9 @@ class IBConnector(EWrapper, EClient):
 
             interval = get_trading_interval(timezone('US/Eastern'))
             interval_str = str(interval) + ' S'
-            #self.reqHistoricalData(index + 1, contract, '', '1 D', "1 day", "TRADES", 0, 1, False, [])
-            self.reqHistoricalData(index + 1, contract, '', '1 D', "1 day", "TRADES", 1, 1, False, [])
-        #self.clean_temp_data()
-        #self.__full_candle_df = pd.concat(self.__concat_df_list)
-        #print(self.__full_candle_df)
+            self.reqHistoricalData(index + 1, contract, '', interval_str, "1 min", "TRADES", 0, 1, False, [])
         
-        print(f'retrieve all candle time: {time.time() - retrieve_candle_data_start_time}')
+        print('')
 
 def main():
     log_dir = 'log.txt'
