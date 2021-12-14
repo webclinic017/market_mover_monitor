@@ -9,7 +9,6 @@ from ibapi.wrapper import EWrapper
 import pandas as pd
 from pytz import timezone
 import time
-import concurrent.futures
 import asyncio
 
 from utils.date_util import get_trading_interval
@@ -27,7 +26,8 @@ class IBConnector(EWrapper, EClient):
         self.__ohlcv_data_list = []
         self.__concat_df_list = []
         self.__full_candle_df = None
-    
+        self.__start_time = time.time()
+
     def error(self, reqId: TickerId, errorCode: int, errorString: str):
         super().error(reqId, errorCode, errorString)
 
@@ -40,7 +40,7 @@ class IBConnector(EWrapper, EClient):
             error_msg = f'reqId: {reqId}, Error Cause: {errorString}'
             logger.exception(error_msg)
 
-    def clean_temp_candle_data(self):
+    def __clean_temp_candle_data(self):
         self.__datetime_list = []
         self.__ohlcv_data_list = []
  
@@ -53,42 +53,58 @@ class IBConnector(EWrapper, EClient):
         dt = bar.date
 
         self.__ohlcv_data_list.append([open, high, low, close, volume])
-        self.__datetime_list.append(dt)
+
+        if dt not in self.__datetime_list:
+            self.__datetime_list.append(dt)
 
     #Marks the ending of historical bars reception,
     def historicalDataEnd(self, reqId: int, start: str, end: str):
+        #logger.debug(f'Request: historicalData completed, reqId: {reqId}, Ticker: {self.__scanner_ticker_list[reqId - 1]}, Bar datatime: {self.__datetime_list[reqId - 1]}')
         ticker_to_indicator_column = pd.MultiIndex.from_product([[self.__scanner_ticker_list[reqId - 1]], [Indicator.OPEN, Indicator.HIGH, Indicator.LOW, Indicator.CLOSE, Indicator.VOLUME]])
         datetime_index = pd.DatetimeIndex(self.__datetime_list)
         
         individual_ticker_candle_df = pd.DataFrame(self.__ohlcv_data_list, columns=ticker_to_indicator_column, index=datetime_index)
         self.__concat_df_list.append(individual_ticker_candle_df)
-        self.clean_temp_candle_data()
-        print(individual_ticker_candle_df)
-        print('')
-
-    #API Scanner subscriptions update every 30 seconds, just as they do in TWS.
-    #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...)
-    def scannerData(self, reqId: int, rank: int, contractDetails: ContractDetails, distance: str, benchmark: str, projection: str, legsStr: str):
-        print('scanning data')
-        self.__scanner_ticker_list.append(contractDetails.contract.symbol)
+        self.__clean_temp_candle_data()
+        
+        if len(self.__concat_df_list) == len(self.__scanner_ticker_list):
+            self.__construct_full_candle_df()
     
-    def scannerDataEnd(self, reqId: int):
-        print('scan end start')
-        self.__concat_df_list = []
-        logger.debug(f'reqId: {reqId}, Scanner Filtered Results: {self.__scanner_ticker_list}')
-
+    def ___req_histoical_data_by_ticker_list(self):
         for index, ticker in enumerate(self.__scanner_ticker_list):
             contract = Contract()
             contract.symbol = ticker
             contract.secType = 'STK'
             contract.exchange = 'SMART'
             contract.currency = 'USD'
+            self.reqHistoricalData(index + 1, contract, '', '1 D', "1 day", "TRADES", 0, 1, False, [])
 
-            interval = get_trading_interval(timezone('US/Eastern'))
-            interval_str = str(interval) + ' S'
-            self.reqHistoricalData(index + 1, contract, '', interval_str, "1 min", "TRADES", 0, 1, False, [])
-        
-        print('')
+            #interval = get_trading_interval(timezone('US/Eastern'))
+            #interval_str = str(interval) + ' S'
+            #self.reqHistoricalData(index + 1, contract, '', interval_str, "1 min", "TRADES", 0, 1, False, [])
+    
+    def __construct_full_candle_df(self):
+        self.__full_candle_df = pd.concat(self.__concat_df_list, axis=1)
+        self.__concat_df_list = []
+        print('sleeping...')
+        time.sleep(60)
+        print('sleep done')
+
+    #API Scanner subscriptions update every 30 seconds, just as they do in TWS.
+    #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...)
+    def scannerData(self, reqId: int, rank: int, contractDetails: ContractDetails, distance: str, benchmark: str, projection: str, legsStr: str):
+        if rank == 0:
+            print('start scan')
+            if self.__start_time is not None:
+                print(f'scan data time interval: {time.time() - self.__start_time}')
+                self.__start_time = time.time()
+        self.__scanner_ticker_list.append(contractDetails.contract.symbol)
+    
+    def scannerDataEnd(self, reqId: int):
+        logger.debug(f'Request: scannerData completed, reqId: {reqId}, Ticker list length: {len(self.__scanner_ticker_list)}, Result: {self.__scanner_ticker_list}')
+        self.___req_histoical_data_by_ticker_list()
+        print('all request done')
+        #logger.debug(f'Concat DataFrame list length: {len(self.__concat_df_list)}')
 
 def main():
     log_dir = 'log.txt'
