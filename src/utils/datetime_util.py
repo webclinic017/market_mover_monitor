@@ -1,4 +1,3 @@
-from pytz import timezone
 from datetime import datetime
 
 def convert_hms_to_second(time_str):
@@ -33,3 +32,9 @@ def get_trading_interval(timezone):
     
     interval = current_date_time - start_datetime
     return convert_hms_to_second(str(interval))
+
+def convert_datetime_format_str(
+            datetime_str: str, 
+            parse_format: str = '%Y%m%d %H:%M:%S', 
+            convert_format: str = '%Y-%m-%d %H:%M:%S') -> str:
+    return datetime.strptime(datetime_str, parse_format).strftime(convert_format)

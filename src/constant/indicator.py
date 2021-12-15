@@ -5,4 +5,5 @@ class Indicator(str, Enum):
     HIGH = 'High',
     LOW = 'Low',
     CLOSE = 'Close',
+    BAR_AVERAGE = 'Average',
     VOLUME = 'Volume'
