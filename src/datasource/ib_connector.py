@@ -85,6 +85,7 @@ class IBConnector(EWrapper, EClient):
             logger.debug('Full one minute historical DataFrame: \n' + one_minute_historical_data_df.to_string().replace('\n', '\n\t'))
 
             for ticker in self.__scanner_result_list:
+                request_time = time.time()
                 feed_response = session.get(f'https://finance.yahoo.com/quote/{ticker}', headers=headers)
                 feed_contents = feed_response.text
                 soup = BeautifulSoup(feed_contents, 'html.parser')
@@ -96,7 +97,7 @@ class IBConnector(EWrapper, EClient):
                 elif is_normal_trading_hours(current_date_time):
                     pct_change = soup.findAll('fin-streamer', {'data-field': 'regularMarketChangePercent'})[-1].find('span').string
 
-                logger.debug(f'Action: YFinance request, Ticker: {ticker}, Percent change: {pct_change}')
+                logger.debug(f'Action: YFinance request, Ticker: {ticker}, Percent change: {pct_change}, Time Spent: {time.time() - request_time}')
 
     def scannerData(self, reqId: int, rank: int, contractDetails: ContractDetails, distance: str, benchmark: str, projection: str, legsStr: str):
         if rank == 0:
