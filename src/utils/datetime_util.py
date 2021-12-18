@@ -6,70 +6,84 @@ def convert_hms_to_second(time_str):
     return int(h) * 3600 + int(m) * 60 + int(s)
 
 def is_current_date_weekday(timezone):
-    current_date_time = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
-    is_weekday = True if (current_date_time.weekday() < 5) else False
+    current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
+    is_weekday = True if (current_datetime.weekday() < 5) else False
     return is_weekday
 
 def get_trading_interval(timezone=timezone('US/Eastern')):
-    current_date_time = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
+    current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
 
-    current_year = current_date_time.year
-    current_month = current_date_time.month
-    current_day = current_date_time.day
+    current_year = current_datetime.year
+    current_month = current_datetime.month
+    current_day = current_datetime.day
 
     pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 0, 0)
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
+    post_market_end_datetime = datetime(current_year, current_month, current_day, 20, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
-    if is_premarket_hours(current_date_time):
+    if is_premarket_hours(current_datetime):
         start_datetime = pre_market_start_datetime
-    elif is_normal_trading_hours(current_date_time):
+    elif is_normal_trading_hours(current_datetime):
         start_datetime = market_open_datetime
-    elif is_postmarket_hours(current_date_time):
+    elif is_postmarket_hours(current_datetime):
         start_datetime = post_market_start_datetime
-    else:
-        raise Exception(f'Current datetime is not trading hours, current datetime: {current_date_time}')
-    
-    interval = current_date_time - start_datetime
+    elif is_out_of_normal_trading_hours(current_datetime):
+        #raise Exception(f'Current datetime is not trading hours, current datetime: {current_datetime}')
+        start_datetime = post_market_end_datetime
+
+    interval = current_datetime - start_datetime
     return convert_hms_to_second(str(interval))
 
-def is_premarket_hours(current_date_time, timezone=timezone('US/Eastern')):
-    current_date_time = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
+def is_premarket_hours(current_datetime, timezone=timezone('US/Eastern')):
+    current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
 
-    current_year = current_date_time.year
-    current_month = current_date_time.month
-    current_day = current_date_time.day
+    current_year = current_datetime.year
+    current_month = current_datetime.month
+    current_day = current_datetime.day
 
     pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
-    if current_date_time > pre_market_start_datetime and current_date_time < market_open_datetime:
+    if current_datetime >= pre_market_start_datetime and current_datetime < market_open_datetime:
         return True
     else:
         return False
 
-def is_normal_trading_hours(current_date_time):
-    current_year = current_date_time.year
-    current_month = current_date_time.month
-    current_day = current_date_time.day
+def is_normal_trading_hours(current_datetime):
+    current_year = current_datetime.year
+    current_month = current_datetime.month
+    current_day = current_datetime.day
 
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
 
-    if current_date_time > market_open_datetime and current_date_time < post_market_start_datetime:
+    if current_datetime >= market_open_datetime and current_datetime < post_market_start_datetime:
         return True
     else:
         return False
 
-def is_postmarket_hours(current_date_time):
-    current_year = current_date_time.year
-    current_month = current_date_time.month
-    current_day = current_date_time.day
+def is_postmarket_hours(current_datetime):
+    current_year = current_datetime.year
+    current_month = current_datetime.month
+    current_day = current_datetime.day
 
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
     post_market_end_datetime = datetime(current_year, current_month, current_day, 20, 0, 0)
 
-    if current_date_time > post_market_start_datetime and current_date_time < post_market_end_datetime:
+    if current_datetime >= post_market_start_datetime and current_datetime < post_market_end_datetime:
+        return True
+    else:
+        return False
+
+def is_out_of_normal_trading_hours(current_datetime):
+    current_year = current_datetime.year
+    current_month = current_datetime.month
+    current_day = current_datetime.day
+
+    post_market_end_datetime = datetime(current_year, current_month, current_day, 20, 0, 0)
+
+    if current_datetime > post_market_end_datetime:
         return True
     else:
         return False
