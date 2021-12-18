@@ -46,35 +46,33 @@ class IBConnector(EWrapper, EClient):
         volume = bar.volume * 100
         dt = bar.date
         timeframe_idx = (reqId - 1) // len(self.__scanner_result_list)
-        rank = reqId - (timeframe_idx * len(self.__scanner_result_list))
-        logger.debug(f'Action: historicalData, reqId: {reqId}, Timeframe index: {timeframe_idx}, Rank: {rank}, Ticker: {self.__scanner_result_list[rank]}, Bar datetime: {convert_datetime_format_str(dt)}, Open: {open}, High: {high}, Low: {low}, Close: {close}, Avgerage: {avg}, Volume: {volume}')
+        
         self.__timeframe_idx_to_ohlvav_list_dict[timeframe_idx].append([open, high, low, close, avg, volume])
         self.__timeframe_idx_to_datetime_list_dict[timeframe_idx].append(dt)
 
     #Marks the ending of historical bars reception.
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         timeframe_idx = (reqId - 1) // len(self.__scanner_result_list)
-        rank = reqId - (timeframe_idx * len(self.__scanner_result_list))
+        rank = reqId - (timeframe_idx * len(self.__scanner_result_list)) - 1
 
         ticker_to_indicator_column = pd.MultiIndex.from_product([[self.__scanner_result_list[rank]], [Indicator.OPEN, Indicator.HIGH, Indicator.LOW, Indicator.CLOSE, Indicator.BAR_AVERAGE, Indicator.VOLUME]])
-        datetime_list = self.__timeframe_idx_to_datetime_list_dict[timeframe_idx]
         ohlcav_list = self.__timeframe_idx_to_ohlvav_list_dict[timeframe_idx]
+        datetime_list = self.__timeframe_idx_to_datetime_list_dict[timeframe_idx]
         datetime_index = pd.DatetimeIndex(datetime_list)
         candle_df = pd.DataFrame(ohlcav_list, columns=ticker_to_indicator_column, index=datetime_index)
 
-        logger.debug(f'Action: historicalDataEnd, reqId: {reqId}, Timeframe index: {timeframe_idx}, Rank: {rank}, Ticker: {self.__scanner_result_list[rank]}, Candle df: {candle_df}')
+        logger.debug(f'Action: historicalDataEnd, reqId: {reqId}, Timeframe index: {timeframe_idx}, Rank: {rank}, Ticker: {self.__scanner_result_list[rank]}')
 
         self.__timeframe_idx_to_concat_df_list_dict[timeframe_idx].append(candle_df)
-        self.__timeframe_idx_to_datetime_list_dict[timeframe_idx] = []
         self.__timeframe_idx_to_ohlvav_list_dict[timeframe_idx] = []
+        self.__timeframe_idx_to_datetime_list_dict[timeframe_idx] = []
 
-        is_all_candle_retrieved = all([len(concat_df_list) for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values()])
+        is_all_candle_retrieved = all([len(concat_df_list) == len(self.__scanner_result_list) for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values()])
         
         if is_all_candle_retrieved:
-            print('completed')
-            print()
-            #one_minute_historical_data_df = pd.concat(self.__one_min_concat_candle_df_list, axis=1)
-            #logger.debug('Full one minute historical DataFrame: \n' + one_minute_historical_data_df.to_string().replace('\n', '\n\t'))
+            #for timeframe, concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.items():
+            one = pd.concat(self.__timeframe_idx_to_concat_df_list_dict[0], axis=1)
+            five = pd.concat(self.__timeframe_idx_to_concat_df_list_dict[1], axis=1)
 
     def __get_historical_data_and_analyse(self, timeframe_list: list):
         req_id_multiplier = len(self.__scanner_result_list)
