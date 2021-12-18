@@ -12,7 +12,7 @@ from utils.datetime_util import convert_datetime_format_str, get_trading_interva
 from utils.filter_util import get_contract
 from utils.log_util import get_logger
 from utils.text_to_speech_util import get_text_to_speech_engine
-from utils.stock_data_util import fetch_snapshots_from_yfinance
+from utils.stock_data_util import append_custom_statistics, fetch_snapshots_from_yfinance
 
 logger = get_logger(console_log=False)
 text_to_speech_engine = get_text_to_speech_engine()
@@ -69,9 +69,10 @@ class IBConnector(EWrapper, EClient):
         is_all_candle_retrieved = all([len(concat_df_list) == len(self.__scanner_result_list) for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values()])
         
         if is_all_candle_retrieved:
-            #for timeframe, concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.items():
-            one = pd.concat(self.__timeframe_idx_to_concat_df_list_dict[0], axis=1)
-            five = pd.concat(self.__timeframe_idx_to_concat_df_list_dict[1], axis=1)
+            for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values():
+                complete_historical_data_df = append_custom_statistics(pd.concat(concat_df_list, axis=1))
+                logger.debug('Full minute historical DataFrame: \n' + complete_historical_data_df.to_string().replace('\n', '\n\t'))
+            
             logger.debug('Completed!')
 
     def __get_historical_data_and_analyse(self, timeframe_list: list):
