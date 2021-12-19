@@ -1,3 +1,4 @@
+from datetime import datetime
 from pandas.core.frame import DataFrame
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -5,22 +6,29 @@ import asyncio
 import aiohttp
 import time
 
-from constant.indicator import Indicator
-from constant.customised_indicator import CustomisedIndicator
+from pandas.core.indexes.multi import MultiIndex
+from pytz import timezone
+
+from constant.indicator.indicator import Indicator
+from constant.indicator.customised_indicator import CustomisedIndicator
+from utils.datetime_util import is_normal_trading_hours, is_premarket_hours, is_postmarket_hours
 from utils.log_util import get_logger
 from utils.text_to_speech_util import get_text_to_speech_engine
-from utils.datetime_util import is_premarket_hours, is_normal_trading_hours, is_postmarket_hours
 
 idx = pd.IndexSlice
 
 logger = get_logger(console_log=False)
 text_to_speech_engine = get_text_to_speech_engine()
 
-def fetch_snapshots_from_yfinance(current_date_time, ticker_list):
+def fetch_snapshots_from_yfinance(ticker_list):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0'}
-    ticker_to_pct_dict = {}
+    ticker_to_previous_close_dict = {}
+
+    if len(ticker_list) == 0:
+        return {}
 
     start_time = time.time()
+    current_date_time = datetime.now(timezone('US/Eastern')).replace(microsecond=0, tzinfo=None)
     async def retrieve_quotes(session, ticker):
         url = f'https://finance.yahoo.com/quote/{ticker}'
         async with session.get(url, headers=headers) as response:
@@ -28,17 +36,16 @@ def fetch_snapshots_from_yfinance(current_date_time, ticker_list):
             html = await response.text()
             soup = BeautifulSoup(html, 'html.parser')
             
-            if is_premarket_hours(current_date_time):
-                premarket_pct_change_field = soup.find('fin-streamer', {'data-field': 'preMarketChangePercent'})
-                pct_change = premarket_pct_change_field.find('span').string if premarket_pct_change_field else 'NA'
+            if is_premarket_hours(current_date_time) or is_postmarket_hours():
+                previous_close = soup.findAll('fin-streamer', {'data-field': 'regularMarketPrice'})[-1].string
             elif is_normal_trading_hours(current_date_time):
-                normal_trading_hour_pct_change_field = soup.findAll('fin-streamer', {'data-field': 'regularMarketChangePercent'})[-1]
-                pct_change = normal_trading_hour_pct_change_field.find('span').string if normal_trading_hour_pct_change_field else 'NA'
-            elif is_postmarket_hours(current_date_time):
-                postmarket_pct_change_field = soup.findAll('fin-streamer', {'data-field': 'postMarketChangePercent'})[-1]
-                pct_change = postmarket_pct_change_field.find('span').string if postmarket_pct_change_field else 'NA'
-            
-            ticker_to_pct_dict[ticker] = pct_change
+                previous_close = soup.findAll('td', {'data-test': 'PREV_CLOSE-value'})[-1].string
+
+            if not previous_close:
+                previous_close = None
+
+            ticker_to_previous_close_dict[ticker] = previous_close
+            logger.debug(f'Yfinance Test, {ticker}, {previous_close}')
     
     async def create_session_and_asyn_tasks():
         async with aiohttp.ClientSession() as session:
@@ -47,24 +54,40 @@ def fetch_snapshots_from_yfinance(current_date_time, ticker_list):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(create_session_and_asyn_tasks())
     logger.debug(f'--- Total snapshots retrieval time from yfinance: {time.time() - start_time} seconds ---')
-    logger.debug(f'Snapshots data: {ticker_to_pct_dict}')
-    return ticker_to_pct_dict
+    logger.debug(f'Snapshots data dictionary: {ticker_to_previous_close_dict}')
+    return ticker_to_previous_close_dict
 
-def append_custom_statistics(historical_data_df: DataFrame) -> DataFrame:
+def append_custom_statistics(historical_data_df: DataFrame, ticker_to_previous_close_dict: dict) -> DataFrame:
     high_df = historical_data_df.loc[:, idx[:, Indicator.HIGH]]
     low_df = historical_data_df.loc[:, idx[:, Indicator.LOW]]
     close_df = historical_data_df.loc[:, idx[:, Indicator.CLOSE]]
-    vol_df = historical_data_df.loc[:, idx[:, Indicator.VOLUME]]
+    vol_df = historical_data_df.loc[:, idx[:, Indicator.VOLUME]].astype(float, errors = 'raise')
     
+    close_pct_df = close_df.pct_change().mul(100).fillna(0).rename(columns={Indicator.CLOSE: CustomisedIndicator.CLOSE_CHANGE})
+
     typical_price_df = ((high_df.add(low_df.values)
                                 .add(close_df.values))
                                 .div(3))
+    tpv_cumsum_df = typical_price_df.mul(vol_df.values).cumsum()
+    vol_cumsum_df = vol_df.cumsum().rename(columns={Indicator.VOLUME: CustomisedIndicator.TOTAL_VOLUME})
+    vwap_df = tpv_cumsum_df.div(vol_cumsum_df.values).rename(columns={Indicator.HIGH: CustomisedIndicator.VWAP})
+
+    vol_20_ma_df = vol_df.rolling(window=20).mean().rename(columns={Indicator.VOLUME: CustomisedIndicator.MA_20_VOLUME})
+    vol_50_ma_df = vol_df.rolling(window=50).mean().rename(columns={Indicator.VOLUME: CustomisedIndicator.MA_50_VOLUME})
+
+    ticker_list = close_df.columns.get_level_values(0).unique()
+    previous_close_value = [float(ticker_to_previous_close_dict[ticker]) for ticker in ticker_list]
+    close_pct_df = ((close_df.sub(previous_close_value)
+                            .div(previous_close_value))
+                            .mul(100)
+                            .round(2)
+                            .rename(columns={Indicator.CLOSE: CustomisedIndicator.CLOSE_CHANGE}))
     
-    vwap_df = (typical_price_df.mul(vol_df.values)).div(vol_df.cumsum().values).rename(columns={Indicator.HIGH: CustomisedIndicator.VWAP})
-    ema_9_df = close_df.ewm(span=9, adjust=False).rename(columns={Indicator.CLOSE: CustomisedIndicator.EMA_9})
-    ema_20_df = close_df.ewm(span=20, adjust=False).rename(columns={Indicator.CLOSE: CustomisedIndicator.EMA_20})
+    logger.debug('Full close pct DataFrame: \n' + close_pct_df.to_string().replace('\n', '\n\t'))
 
     return pd.concat([historical_data_df, 
+                        close_pct_df,
                         vwap_df, 
-                        ema_9_df, 
-                        ema_20_df], axis=1)
+                        vol_20_ma_df,
+                        vol_50_ma_df,
+                        vol_cumsum_df], axis=1)
