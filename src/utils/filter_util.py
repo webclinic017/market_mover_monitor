@@ -2,13 +2,13 @@ from ibapi.scanner import ScannerSubscription
 from ibapi.contract import Contract
 
 from constant.instrument import Instrument
-from constant.scan_code import ScanCode
+from constant.filter.scan_code import ScanCode
 
 def get_filter(
             scan_code: ScanCode, instrument: Instrument, 
             min_price: float, min_volume: int, 
             include_otc: bool,
-            max_rank: int) -> ScannerSubscription:
+            no_of_result: int) -> ScannerSubscription:
     scannerFilter = ScannerSubscription()
 
     scannerFilter.scanCode = scan_code
@@ -25,7 +25,8 @@ def get_filter(
     if min_volume:
         scannerFilter.aboveVolume = min_volume
     
-    scannerFilter.numberOfRows = max_rank
+    #Maximum no. of rows is 50, no_of_result shouldn't exceed 50
+    scannerFilter.numberOfRows = no_of_result
 
     return scannerFilter
 

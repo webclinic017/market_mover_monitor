@@ -1,4 +1,4 @@
-from constant.scan_code import ScanCode
+from constant.filter.scan_code import ScanCode
 from constant.instrument import Instrument
 
 from utils.file_util import clean_txt_file_content
@@ -20,7 +20,7 @@ def main():
         filter = get_filter(scan_code = ScanCode.TOP_GAINERS.value, instrument = Instrument.STOCKS.value, 
                             min_price = 0.3, min_volume = 10000, 
                             include_otc = False,
-                            max_rank = 20)
+                            no_of_result = 20)
 
         #API Scanner subscriptions update every 30 seconds, just as they do in TWS.
         connector.reqScannerSubscription(0, filter, [], [])
