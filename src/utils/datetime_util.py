@@ -1,16 +1,12 @@
 from datetime import datetime
 from pytz import timezone
 
-def convert_hms_to_second(time_str):
-    h, m, s = time_str.split(':')
-    return int(h) * 3600 + int(m) * 60 + int(s)
-
 def is_current_date_weekday(timezone):
     current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
     is_weekday = True if (current_datetime.weekday() < 5) else False
     return is_weekday
 
-def get_trading_interval(timezone=timezone('US/Eastern')):
+def get_trading_session_start_datetime(timezone=timezone('US/Eastern')):
     current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
 
     current_year = current_datetime.year
@@ -19,9 +15,9 @@ def get_trading_interval(timezone=timezone('US/Eastern')):
 
     pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 0, 0)
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
-    post_market_end_datetime = datetime(current_year, current_month, current_day, 20, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
+    
     if is_premarket_hours(current_datetime):
         start_datetime = pre_market_start_datetime
     elif is_normal_trading_hours(current_datetime):
@@ -29,11 +25,9 @@ def get_trading_interval(timezone=timezone('US/Eastern')):
     elif is_postmarket_hours(current_datetime):
         start_datetime = post_market_start_datetime
     elif is_out_of_normal_trading_hours(current_datetime):
-        #raise Exception(f'Current datetime is not trading hours, current datetime: {current_datetime}')
-        start_datetime = post_market_end_datetime
+        raise Exception(f'Current datetime is not trading hours, current datetime: {current_datetime}')
 
-    interval = current_datetime - start_datetime
-    return convert_hms_to_second(str(interval))
+    return start_datetime
 
 def is_premarket_hours(current_datetime, timezone=timezone('US/Eastern')):
     current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
@@ -93,3 +87,6 @@ def convert_datetime_format_str(
             parse_format: str = '%Y%m%d %H:%M:%S', 
             convert_format: str = '%Y-%m-%d %H:%M:%S') -> str:
     return datetime.strptime(datetime_str, parse_format).strftime(convert_format)
+
+def parse_datetime_str(datetime_str: str, parse_format: str = '%Y-%m-%d %H:%M:%S'):
+    return datetime.strptime(datetime_str, parse_format)

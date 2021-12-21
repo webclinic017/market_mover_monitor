@@ -33,7 +33,7 @@ def get_filter(
 def get_contract(ticker: str) -> Contract:
     contract = Contract()
     contract.symbol = ticker
-    contract.secType = 'STK'
+    contract.secType = Instrument.STOCKS.value
     contract.exchange = 'SMART'
     contract.currency = 'USD'
     

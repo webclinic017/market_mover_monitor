@@ -1,19 +1,18 @@
 from constant.filter.scan_code import ScanCode
 from constant.instrument import Instrument
 
-from utils.file_util import clean_txt_file_content
 from utils.log_util import get_logger
+from utils.text_to_speech_util import get_text_to_speech_engine
+from utils.file_util import clean_txt_file_content
 from utils.filter_util import get_filter
 
 from datasource.ib_connector import IBConnector
 
 logger = get_logger(console_log=False)
+text_to_speech_engine = get_text_to_speech_engine()
 
 def main():
     try:
-        log_dir = 'log.txt'
-        clean_txt_file_content(log_dir)
-
         connector = IBConnector()
         connector.connect('127.0.0.1', 7496, 0)
 
@@ -26,10 +25,15 @@ def main():
         connector.reqScannerSubscription(0, filter, [], [])
         connector.run()
     except Exception as e:
-        connector.disconnect()
-        print(f'Error occurs, Cause: {e}')
         logger.exception(e)
-        raise e
+        print(f'Error occurs, Cause: {e}')
+        print('Restart program')
+        text_to_speech_engine.say(f'Error occurs due to {e}, re-establishing connection')
+        text_to_speech_engine.runAndWait()
+        connector.disconnect()
+        main()
 
 if __name__ == '__main__':
+    log_dir = 'log.txt'
+    clean_txt_file_content(log_dir)
     main()
