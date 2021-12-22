@@ -27,6 +27,7 @@ class IBConnector(EWrapper, EClient):
         EWrapper.__init__(self)
         EClient.__init__(self, self)
         self.__timeframe_list = [Timeframe.ONE_MINUTE, Timeframe.FIVE_MINUTE]
+        self.__pattern_list = [Pattern.UNUSUAL_RAMP_UP]
         self.__scanner_result_list = []
         self.__ticker_to_snapshots = {}
         self.__start_time = None
@@ -43,7 +44,7 @@ class IBConnector(EWrapper, EClient):
             error_msg = 'TWS API Connection Lost'
             logger.exception(error_msg)
             raise Exception(error_msg)
-
+        #ERROR 14 165 Historical Market Data Service query message:HMDS server disconnect occurred.  Attempting reconnection...
     def historicalData(self, reqId, bar):
         open = bar.open
         high = bar.high
@@ -80,8 +81,8 @@ class IBConnector(EWrapper, EClient):
             for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values():
                 complete_historical_data_df = append_custom_statistics(pd.concat(concat_df_list, axis=1), self.__ticker_to_snapshots)
                 logger.debug('Full candle DataFrame: \n' + complete_historical_data_df.to_string().replace('\n', '\n\t'))
-                pattern_list = [Pattern.UNUSUAL_RAMP_UP]
-                for pattern in pattern_list:
+                
+                for pattern in self.__pattern_list:
                     pattern_analyzer = PatternAnalyserFactory.get_pattern_analyser(pattern, complete_historical_data_df)
                     pattern_analyzer.analyse()
             
@@ -94,6 +95,9 @@ class IBConnector(EWrapper, EClient):
         req_id_multiplier = len(self.__scanner_result_list)
         retrieve_candle_start_datetime = get_trading_session_start_datetime()
         timeframe_interval = (current_datetime - retrieve_candle_start_datetime).seconds
+        logger.debug(f'Current datetime: {current_datetime}')
+        logger.debug(f'Trading start datetime: {retrieve_candle_start_datetime}')
+        logger.debug(f'Interval: {timeframe_interval}')
         
         self.__timeframe_idx_to_ohlcv_list_dict = {}
         self.__timeframe_idx_to_datetime_list_dict = {}

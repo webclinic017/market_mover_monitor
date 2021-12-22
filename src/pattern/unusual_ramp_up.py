@@ -29,8 +29,8 @@ class UnusualRampUp(PatternAnalyser):
         latest_close_df = close_df.iloc[[-1]]
         
         #New Top Gainer Popping Up
-        numeric_idx_df = derive_idx_df(previous_close_pct_df)
-        ramp_up_boolean_df = (previous_close_pct_df >= 6)
+        numeric_idx_df = derive_idx_df(previous_close_pct_df).rename(columns={RuntimeIndicator.INDEX: RuntimeIndicator.COMPARE})
+        ramp_up_boolean_df = (previous_close_pct_df >= 6.5)
         first_occurrence_ramp_up_idx_df = numeric_idx_df.where(ramp_up_boolean_df.values).bfill().iloc[[0]]
         new_gainer_boolean_df = (first_occurrence_ramp_up_idx_df == (len(previous_close_pct_df) - 1))
 
@@ -43,9 +43,9 @@ class UnusualRampUp(PatternAnalyser):
         latest_vol_50_ma_df = self.__historical_data_df.loc[:, idx[:, CustomisedIndicator.MA_50_VOLUME]].iloc[[-1]].rename(columns={CustomisedIndicator.MA_50_VOLUME: RuntimeIndicator.COMPARE})
         latest_candle_close_pct_df = self.__historical_data_df.loc[:, idx[:, CustomisedIndicator.CLOSE_CHANGE]].iloc[[-1]].rename(columns={CustomisedIndicator.CLOSE_CHANGE: RuntimeIndicator.COMPARE})
 
-        above_vol_20_ma_boolean_df = (latest_vol_df >= latest_vol_20_ma_df)
-        above_vol_50_ma_boolean_df = (latest_vol_df >= latest_vol_50_ma_df)
-        latest_candle_close_pct_boolean_df = (latest_candle_close_pct_df > 0)
+        above_vol_20_ma_boolean_df = (latest_vol_df >= latest_vol_20_ma_df) & (latest_vol_df >= 3000)
+        above_vol_50_ma_boolean_df = (latest_vol_df >= latest_vol_50_ma_df) & (latest_vol_df >= 3000)
+        latest_candle_close_pct_boolean_df = (latest_candle_close_pct_df > 2)
         above_vol_20_ma_ramp_up_boolean_df = (above_vol_20_ma_boolean_df) & (latest_candle_close_pct_boolean_df) & (~new_gainer_boolean_df.set_index(latest_candle_close_pct_boolean_df.index))
         above_vol_50_ma_ramp_up_boolean_df = (above_vol_50_ma_boolean_df) & (latest_candle_close_pct_boolean_df) & (~new_gainer_boolean_df.set_index(latest_candle_close_pct_boolean_df.index))
 
@@ -65,32 +65,35 @@ class UnusualRampUp(PatternAnalyser):
         for ticker in new_gainer_ticker_list:
             close = latest_close_df.loc[:, idx[ticker, :]].values[0][0]
             pop_up_pct = previous_close_pct_df.loc[:, idx[ticker, :]].iloc[[-1]].values[0][0]
+            round_pop_up_pct = round(pop_up_pct, 2)
             pop_up_hour = latest_close_df.index.tolist()[0].hour
             pop_up_minute = latest_close_df.index.tolist()[0].minute
-            logger.debug(f'{ticker} is popping up {pop_up_pct} at {pop_up_hour} {pop_up_minute}, Close: {close}')
-            print(f'{ticker} is popping up {pop_up_pct} at {pop_up_hour} {pop_up_minute}, Close: {close}')
-            text_to_speech_engine.say(f'{ticker} is popping up {pop_up_pct} at {pop_up_hour} {pop_up_minute}')
+            logger.debug(f'{ticker} is popping up {round_pop_up_pct}% at {pop_up_hour} {pop_up_minute}, Close: {close}')
+            print(f'{ticker} is popping up {round_pop_up_pct}% at {pop_up_hour} {pop_up_minute}, Close: {close}')
+            text_to_speech_engine.say(f'{ticker} is popping up {round_pop_up_pct} percent at {pop_up_hour} {pop_up_minute}')
             text_to_speech_engine.runAndWait()
         
         for ticker in above_vol_20_ma_ticker_list:
             close = latest_close_df.loc[:, idx[ticker, :]].values[0][0]
             ramp_up_pct = latest_candle_close_pct_df.loc[:, idx[ticker, :]].values[0][0]
+            round_ramp_up_pct = round(ramp_up_pct, 2)
             pop_up_hour = latest_candle_close_pct_df.index.tolist()[0].hour
             pop_up_minute = latest_candle_close_pct_df.index.tolist()[0].minute
             vol_20_ma = latest_vol_20_ma_df.loc[:, idx[ticker, :]].values[0][0]
-            logger.debug(f'{ticker} is ramping up {ramp_up_pct} above 20 MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Close: {close}')
-            print(f'{ticker} is ramping up {ramp_up_pct} above 20MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Close: {close}')
-            text_to_speech_engine.say(f'{ticker} is ramping up {ramp_up_pct} above 20 M A volume at {pop_up_hour} {pop_up_minute}')
+            logger.debug(f'{ticker} is ramping up {round_ramp_up_pct}% above 20 MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Close: {close}')
+            print(f'{ticker} is ramping up {round_ramp_up_pct}% above 20MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Close: {close}')
+            text_to_speech_engine.say(f'{ticker} is ramping up {round_ramp_up_pct} percent above 20 M A volume at {pop_up_hour} {pop_up_minute}')
             text_to_speech_engine.runAndWait()
 
         for ticker in above_vol_50_ma_ticker_list:
             close = latest_close_df.loc[:, idx[ticker, :]].values[0][0]
             ramp_up_pct = latest_candle_close_pct_df.loc[:, idx[ticker, :]].values[0][0]
+            round_ramp_up_pct = round(ramp_up_pct, 2)
             pop_up_hour = latest_candle_close_pct_df.index.tolist()[0].hour
             pop_up_minute = latest_candle_close_pct_df.index.tolist()[0].minute
             vol_50_ma = latest_vol_50_ma_df.loc[:, idx[ticker, :]].values[0][0]
-            logger.debug(f'{ticker} is ramping up {ramp_up_pct} above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Close: {close}')
-            print(f'{ticker} is ramping up {ramp_up_pct} above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Close: {close}')
-            text_to_speech_engine.say(f'{ticker} is ramping up {ramp_up_pct} above 50 M A volume at {pop_up_hour} {pop_up_minute}')
+            logger.debug(f'{ticker} is ramping up {round_ramp_up_pct}% above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Close: {close}')
+            print(f'{ticker} is ramping up {round_ramp_up_pct}% above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Close: {close}')
+            text_to_speech_engine.say(f'{ticker} is ramping up {round_ramp_up_pct} percent above 50 M A volume at {pop_up_hour} {pop_up_minute}')
             text_to_speech_engine.runAndWait()
         

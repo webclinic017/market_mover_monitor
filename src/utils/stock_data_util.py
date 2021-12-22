@@ -37,7 +37,7 @@ def update_snapshots(current_datetime,
             if not previous_close:
                 previous_close = None
 
-            result_dict[ticker] = previous_close
+            result_dict[ticker] = previous_close.replace(',', '')
             #logger.debug(f'Yfinance Test, {ticker}, {previous_close}')
     
     async def create_session_and_asyn_tasks(ticker_list):
@@ -79,6 +79,8 @@ def append_custom_statistics(candle_df: DataFrame, ticker_to_snapshots_dict: dic
     ticker_list = close_df.columns.get_level_values(0)
 
     try:
+        #could not convert string to float: '1,791.10'
+        #should exclude non valid ticker symbol such as 'MTL PR' use regex to check
         previous_close_value = [float(ticker_to_snapshots_dict[ticker]) for ticker in ticker_list]
     except Exception as e:
         print(e)
