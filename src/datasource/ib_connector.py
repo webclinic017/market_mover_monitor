@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pytz import timezone
 from constant.timeframe import Timeframe
+from exception.connection_exception import ConnectionException
 from ibapi.client import EClient
 from ibapi.common import TickerId
 from ibapi.contract import ContractDetails
@@ -37,14 +38,14 @@ class IBConnector(EWrapper, EClient):
 
         ''' Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only 
         notification that a connector has been made successfully to the IB market data farms. '''
-        if errorCode == -1:
-            connect_success_msg = f'reqId: {reqId} Connect Success, {errorString}'
+        if errorCode == 2104 or errorCode == 2106 or errorCode == 2158:
+            connect_success_msg = f'reqId: {reqId}, Connection Success, {errorString}'
             logger.debug(connect_success_msg)
-        elif errorCode == 1100:
-            error_msg = 'TWS API Connection Lost'
-            logger.exception(error_msg)
-            raise Exception(error_msg)
-        #ERROR 14 165 Historical Market Data Service query message:HMDS server disconnect occurred.  Attempting reconnection...
+        elif errorCode == 1100 or errorCode == 1101 or errorCode == 1102 or errorCode == 2110:
+            raise ConnectionException(errorString)
+        else:
+            raise Exception(errorString)
+
     def historicalData(self, reqId, bar):
         open = bar.open
         high = bar.high

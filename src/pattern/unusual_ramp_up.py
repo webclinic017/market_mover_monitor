@@ -70,7 +70,7 @@ class UnusualRampUp(PatternAnalyser):
             pop_up_minute = latest_close_df.index.tolist()[0].minute
             logger.debug(f'{ticker} is popping up {round_pop_up_pct}% at {pop_up_hour} {pop_up_minute}, Close: {close}')
             print(f'{ticker} is popping up {round_pop_up_pct}% at {pop_up_hour} {pop_up_minute}, Close: {close}')
-            text_to_speech_engine.say(f'{ticker} is popping up {round_pop_up_pct} percent at {pop_up_hour} {pop_up_minute}')
+            text_to_speech_engine.say(f'{" ".join(ticker)} is popping up {round_pop_up_pct} percent at {pop_up_hour} {pop_up_minute}')
             text_to_speech_engine.runAndWait()
         
         for ticker in above_vol_20_ma_ticker_list:
@@ -80,9 +80,10 @@ class UnusualRampUp(PatternAnalyser):
             pop_up_hour = latest_candle_close_pct_df.index.tolist()[0].hour
             pop_up_minute = latest_candle_close_pct_df.index.tolist()[0].minute
             vol_20_ma = latest_vol_20_ma_df.loc[:, idx[ticker, :]].values[0][0]
-            logger.debug(f'{ticker} is ramping up {round_ramp_up_pct}% above 20 MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Close: {close}')
-            print(f'{ticker} is ramping up {round_ramp_up_pct}% above 20MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Close: {close}')
-            text_to_speech_engine.say(f'{ticker} is ramping up {round_ramp_up_pct} percent above 20 M A volume at {pop_up_hour} {pop_up_minute}')
+            volume = latest_vol_df.loc[:, idx[ticker, :]].values[0][0]
+            logger.debug(f'{ticker} is ramping up {round_ramp_up_pct}% above 20 MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Volume: {volume}, Close: {close}')
+            print(f'{ticker} is ramping up {round_ramp_up_pct}% above 20MA volume at {pop_up_hour} {pop_up_minute}, 20MA volume: {vol_20_ma}, Volume: {volume}, Close: {close}')
+            text_to_speech_engine.say(f'{" ".join(ticker)} is ramping up {round_ramp_up_pct} percent above 20 M A volume at {pop_up_hour} {pop_up_minute}')
             text_to_speech_engine.runAndWait()
 
         for ticker in above_vol_50_ma_ticker_list:
@@ -92,8 +93,9 @@ class UnusualRampUp(PatternAnalyser):
             pop_up_hour = latest_candle_close_pct_df.index.tolist()[0].hour
             pop_up_minute = latest_candle_close_pct_df.index.tolist()[0].minute
             vol_50_ma = latest_vol_50_ma_df.loc[:, idx[ticker, :]].values[0][0]
-            logger.debug(f'{ticker} is ramping up {round_ramp_up_pct}% above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Close: {close}')
-            print(f'{ticker} is ramping up {round_ramp_up_pct}% above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Close: {close}')
-            text_to_speech_engine.say(f'{ticker} is ramping up {round_ramp_up_pct} percent above 50 M A volume at {pop_up_hour} {pop_up_minute}')
+            volume = latest_vol_df.loc[:, idx[ticker, :]].values[0][0]
+            logger.debug(f'{ticker} is ramping up {round_ramp_up_pct}% above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Volume: {volume}, Close: {close}')
+            print(f'{ticker} is ramping up {round_ramp_up_pct}% above 50MA volume at {pop_up_hour} {pop_up_minute}, 50MA volume: {vol_50_ma}, Volume: {volume}, Close: {close}')
+            text_to_speech_engine.say(f'{" ".join(ticker)} is ramping up {round_ramp_up_pct} percent above 50 M A volume at {pop_up_hour} {pop_up_minute}')
             text_to_speech_engine.runAndWait()
         

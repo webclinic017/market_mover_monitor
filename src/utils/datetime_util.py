@@ -39,7 +39,7 @@ def is_premarket_hours(current_datetime, timezone=timezone('US/Eastern')):
     pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
-    if current_datetime >= pre_market_start_datetime and current_datetime < market_open_datetime:
+    if current_datetime > pre_market_start_datetime and current_datetime < market_open_datetime:
         return True
     else:
         return False
@@ -52,7 +52,7 @@ def is_normal_trading_hours(current_datetime):
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
 
-    if current_datetime >= market_open_datetime and current_datetime < post_market_start_datetime:
+    if current_datetime > market_open_datetime and current_datetime < post_market_start_datetime:
         return True
     else:
         return False

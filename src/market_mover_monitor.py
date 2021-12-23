@@ -1,3 +1,7 @@
+import os
+
+from exception.connection_exception import ConnectionException
+
 from constant.filter.scan_code import ScanCode
 from constant.instrument import Instrument
 
@@ -8,7 +12,7 @@ from utils.filter_util import get_filter
 
 from datasource.ib_connector import IBConnector
 
-logger = get_logger(console_log=False)
+logger = get_logger(console_log=True)
 text_to_speech_engine = get_text_to_speech_engine()
 
 def main():
@@ -22,16 +26,24 @@ def main():
                             no_of_result = 20)
 
         #API Scanner subscriptions update every 30 seconds, just as they do in TWS.
+        print('Listening...')
         connector.reqScannerSubscription(0, filter, [], [])
         connector.run()
     except Exception as e:
-        logger.exception(e)
-        print(f'Error occurs, Cause: {e}')
-        print('Restart program')
-        text_to_speech_engine.say(f'Error occurs due to {e}, re-establishing connection')
-        text_to_speech_engine.runAndWait()
         connector.disconnect()
-        main()
+
+        is_connection_exception = True if isinstance(e, ConnectionException) else False
+        display_msg = 'TWS API Connection Lost' if is_connection_exception else 'Fatal Error'
+        read_msg = 'Re-establishing Connection Due to Connectivity Issue' if is_connection_exception else 'Terminate Connection Due to Fatal Error'
+
+        os.system('cls')
+        logger.exception(f'{display_msg}, Cause: {e}')
+        
+        text_to_speech_engine.say(f'{read_msg}')
+        text_to_speech_engine.runAndWait()
+
+        if is_connection_exception:
+            main()
 
 if __name__ == '__main__':
     log_dir = 'log.txt'
