@@ -28,7 +28,7 @@ class IBConnector(EWrapper, EClient):
         EWrapper.__init__(self)
         EClient.__init__(self, self)
         self.__timeframe_list = [Timeframe.ONE_MINUTE, Timeframe.FIVE_MINUTE]
-        self.__pattern_list = [Pattern.UNUSUAL_RAMP_UP]
+        self.__pattern_list = [[Pattern.INITIAL_POP_UP, Pattern.UNUSUAL_VOLUME_RAMP_UP], []]
         self.__scanner_result_list = []
         self.__ticker_to_snapshots = {}
         self.__start_time = None
@@ -53,10 +53,8 @@ class IBConnector(EWrapper, EClient):
         close = bar.close
         volume = bar.volume * 100
         dt = bar.date
+
         timeframe_idx = (reqId - 1) // len(self.__scanner_result_list)
-        
-        #rank = reqId - (timeframe_idx * len(self.__scanner_result_list)) - 1
-        #logger.debug(f'Action: historicalData, reqId: {reqId}, Timeframe index: {timeframe_idx}, Rank: {rank}, Ticker: {self.__scanner_result_list[rank]}, Bar datetime: {convert_datetime_format_str(dt)}, Open: {open}, High: {high}, Low: {low}, Close: {close}, Volume: {volume}')
         self.__timeframe_idx_to_ohlcv_list_dict[timeframe_idx].append([open, high, low, close, volume])
         self.__timeframe_idx_to_datetime_list_dict[timeframe_idx].append(dt)
 
@@ -74,36 +72,36 @@ class IBConnector(EWrapper, EClient):
 
         self.__timeframe_idx_to_ohlcv_list_dict[timeframe_idx] = []
         self.__timeframe_idx_to_datetime_list_dict[timeframe_idx] = []
-        logger.debug(f'Action: historicalDataEnd, reqId: {reqId}, Timeframe index: {timeframe_idx}, Rank: {rank}, Ticker: {self.__scanner_result_list[rank]}')
 
         is_all_candle_retrieved = all([len(concat_df_list) == len(self.__scanner_result_list) for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values()])
         
         if is_all_candle_retrieved:
-            for concat_df_list in self.__timeframe_idx_to_concat_df_list_dict.values():
-                complete_historical_data_df = append_custom_statistics(pd.concat(concat_df_list, axis=1), self.__ticker_to_snapshots)
-                logger.debug('Full candle DataFrame: \n' + complete_historical_data_df.to_string().replace('\n', '\n\t'))
-                
-                for pattern in self.__pattern_list:
-                    pattern_analyzer = PatternAnalyserFactory.get_pattern_analyser(pattern, complete_historical_data_df)
-                    pattern_analyzer.analyse()
-            
+            for timeframe_idx, pattern_list in enumerate(self.__pattern_list):
+                if len(pattern_list) > 0:
+                    concat_df_list = self.__timeframe_idx_to_concat_df_list_dict[timeframe_idx]
+                    complete_historical_data_df = append_custom_statistics(pd.concat(concat_df_list, axis=1), self.__ticker_to_snapshots)
+                    logger.debug('Full candle DataFrame: \n' + complete_historical_data_df.to_string().replace('\n', '\n\t'))
+
+                    for pattern in pattern_list:
+                        pattern_analyzer = PatternAnalyserFactory.get_pattern_analyser(pattern, complete_historical_data_df)
+                        pattern_analyzer.analyse()
+
             logger.debug(f'--- Total historical data retrieval and analysis time: {time.time() - self.__start_time} seconds ---')
 
     def __get_historical_data_and_analyse(self):
         current_datetime = datetime.now(timezone('US/Eastern')).replace(microsecond=0, tzinfo=None)
         update_snapshots(current_datetime, self.__ticker_to_snapshots, self.__scanner_result_list)
-        
+
         req_id_multiplier = len(self.__scanner_result_list)
         retrieve_candle_start_datetime = get_trading_session_start_datetime()
         timeframe_interval = (current_datetime - retrieve_candle_start_datetime).seconds
-        logger.debug(f'Current datetime: {current_datetime}')
-        logger.debug(f'Trading start datetime: {retrieve_candle_start_datetime}')
-        logger.debug(f'Interval: {timeframe_interval}')
-        
+        truncate_seconds = timeframe_interval % 60
+        timeframe_interval = timeframe_interval - truncate_seconds
+
         self.__timeframe_idx_to_ohlcv_list_dict = {}
         self.__timeframe_idx_to_datetime_list_dict = {}
         self.__timeframe_idx_to_concat_df_list_dict = {}
-        
+
         for timeframe_idx, timeframe in enumerate(self.__timeframe_list):
             self.__timeframe_idx_to_ohlcv_list_dict[timeframe_idx] = []
             self.__timeframe_idx_to_datetime_list_dict[timeframe_idx] = []
