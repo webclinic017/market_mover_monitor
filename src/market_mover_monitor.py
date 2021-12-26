@@ -17,6 +17,7 @@ text_to_speech_engine = get_text_to_speech_engine()
 
 def main():
     try:
+        connector = None
         connector = IBConnector()
         connector.connect('127.0.0.1', 7496, 0)
 
@@ -30,7 +31,8 @@ def main():
         connector.reqScannerSubscription(0, filter, [], [])
         connector.run()
     except Exception as e:
-        connector.disconnect()
+        if connector:
+            connector.disconnect()
 
         is_connection_exception = True if isinstance(e, ConnectionException) else False
         display_msg = 'TWS API Connection Lost' if is_connection_exception else 'Fatal Error'

@@ -17,7 +17,6 @@ def get_trading_session_start_datetime(timezone=timezone('US/Eastern')):
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
-    
     if is_premarket_hours(current_datetime):
         start_datetime = pre_market_start_datetime
     elif is_normal_trading_hours(current_datetime):
