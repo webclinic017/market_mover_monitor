@@ -50,6 +50,7 @@ class InitialPopUp(PatternAnalyser):
             logger.debug('marubozu_boolean_df: \n' + marubozu_boolean_df.to_string().replace('\n', '\n\t'))
             logger.debug('candle_close_pct_boolean_df: \n' + candle_close_pct_boolean_df.to_string().replace('\n', '\n\t'))
             logger.debug('previous_close_pct_boolean_df: \n' + previous_close_pct_boolean_df.to_string().replace('\n', '\n\t'))
+            logger.debug('Ramp Up Boolean DataFrame: \n' + ramp_up_boolean_df.to_string().replace('\n', '\n\t'))
             logger.debug('Ramp Up Occurrence DataFrame: \n' + ramp_up_occurrence_df.to_string().replace('\n', '\n\t'))
             logger.debug('Result DataFrame: \n' + result_boolean_df.to_string().replace('\n', '\n\t'))
             logger.debug(f'Candle DataFrame Timeframe Length: {len(previous_close_pct_df)}')
@@ -72,9 +73,12 @@ class InitialPopUp(PatternAnalyser):
                 display_close_pct = round(pop_up_close_pct_df.loc[:, ticker].values[0][0], 2)
                 display_previous_close_pct = round(pop_up_previous_close_pct_df.loc[:, ticker].values[0][0], 2)
 
-                pop_up_hour = pop_up_datetime_idx_df.loc[:, ticker].values[0][0].hour
-                pop_up_minute = pop_up_datetime_idx_df.loc[:, ticker].values[0][0].minute
-                display_time_str = f'{pop_up_hour}:{pop_up_minute}'
+                pop_up_datetime = pop_up_datetime_idx_df.loc[:, ticker].values[0][0]
+                pop_up_hour = pd.to_datetime(pop_up_datetime).hour
+                pop_up_minute = pd.to_datetime(pop_up_datetime).minute
+                display_hour = ('0' + str(pop_up_hour)) if pop_up_hour < 10 else pop_up_hour
+                display_minute = ('0' + str(pop_up_minute)) if pop_up_minute < 10 else pop_up_minute
+                display_time_str = f'{display_hour}:{display_minute}'
                 read_time_str = f'{pop_up_hour} {pop_up_minute}' if (pop_up_minute > 0) else f'{pop_up_hour} o clock' 
                 read_ticker_str = " ".join(ticker)
 
