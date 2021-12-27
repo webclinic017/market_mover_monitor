@@ -36,7 +36,7 @@ def main():
 
         is_connection_exception = True if isinstance(e, ConnectionException) else False
         display_msg = 'TWS API Connection Lost' if is_connection_exception else 'Fatal Error'
-        read_msg = 'Re-establishing Connection Due to Connectivity Issue' if is_connection_exception else 'Terminate Connection Due to Fatal Error'
+        read_msg = 'Re-establishing Connection Due to Connectivity Issue' if is_connection_exception else 'Close Connection Due to Fatal Error'
 
         os.system('cls')
         logger.exception(f'{display_msg}, Cause: {e}')
