@@ -38,7 +38,7 @@ class IBConnector(EWrapper, EClient):
 
         ''' Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only 
         notification that a connector has been made successfully to the IB market data farms. '''
-        if errorCode == 2104 or errorCode == 2106 or errorCode == 2158:
+        if errorCode == 2104 or errorCode == 2106 or errorCode == 2158 or errorCode == 2108:
             connect_success_msg = f'reqId: {reqId}, Connection Success, {errorString}'
             logger.debug(connect_success_msg)
         elif errorCode == 1100 or errorCode == 1101 or errorCode == 1102 or errorCode == 2110:
