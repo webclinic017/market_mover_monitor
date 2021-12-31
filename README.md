@@ -15,4 +15,4 @@ HOW TO USE:
 
 FUNCTION:
 
-1. Once program starts it keep scanning top gainers in pre-market or normal trading hours, depending on program start time. 1 minute and 5 minute candle will be retrieved for pattern analysis, include new top gainer scanning, high volume ramp up etc, patterns/ strategys are still optimising/ developing 
+- Once program starts it keep scanning top gainers in pre-market or normal trading hours, depending on program start time. 1 minute and 5 minute candle will be retrieved for pattern analysis, include new top gainer scanning, high volume ramp up etc, patterns/ strategys are still optimising/ developing 
