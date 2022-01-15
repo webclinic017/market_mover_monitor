@@ -9,11 +9,11 @@ from constant.indicator.runtime_indicator import RuntimeIndicator
 from pattern.pattern_analyser import PatternAnalyser
 
 from utils.log_util import get_logger
-from utils.text_to_speech_util import get_text_to_speech_engine
+from model.text_to_speech_engine import TextToSpeechEngine
 from utils.dataframe_util import derive_idx_df
 
 logger = get_logger(console_log=False)
-text_to_speech_engine = get_text_to_speech_engine()
+text_to_speech_engine = TextToSpeechEngine()
 
 idx = pd.IndexSlice
 
@@ -52,7 +52,7 @@ class UnusualVolumeRampUp(PatternAnalyser):
         above_vol_20_ma_ticker_list = [ticker for ticker in above_vol_20_ma_ticker_list if ticker not in above_vol_50_ma_ticker_list]
         
         if len(above_vol_20_ma_ticker_list) > 0 or len(above_vol_50_ma_ticker_list) > 0:
-            logger.debug('Full historical DataFrame: \n' + self.__historical_data_df.loc[:, idx[:, [Indicator.VOLUME, CustomisedIndicator.CLOSE_CHANGE, CustomisedIndicator.MA_20_VOLUME, CustomisedIndicator.MA_50_VOLUME]]].to_string().replace('\n', '\n\t'))
+            logger.debug('Full historical DataFrame: \n' + self.__historical_data_df.loc[:, idx[:, [Indicator.VOLUME, CustomisedIndicator.CLOSE_CHANGE, CustomisedIndicator.MA_20_VOLUME, CustomisedIndicator.MA_50_VOLUME, CustomisedIndicator.CANDLE_COLOUR, CustomisedIndicator.MARUBOZU_RATIO]]].to_string().replace('\n', '\n\t'))
             result_ticker_list = [above_vol_20_ma_ticker_list, above_vol_50_ma_ticker_list]
 
             for list_idx, ticker_list in enumerate(result_ticker_list):
@@ -74,12 +74,12 @@ class UnusualVolumeRampUp(PatternAnalyser):
                     pop_up_ma_vol_df = ma_vol_df.where(above_ma_df.values).ffill().iloc[[-1]]
     
                     for ticker in ticker_list:
-                        display_close = pop_up_close_df.loc[:, ticker].values[0][0]
-                        display_volume = pop_up_volume_df.loc[:, ticker].values[0][0]
-                        display_close_pct = round(pop_up_close_pct_df.loc[:, ticker].values[0][0], 2)
-                        display_ma_vol = pop_up_ma_vol_df.loc[:, ticker].values[0][0]
+                        display_close = pop_up_close_df.loc[:, ticker].iat[0, 0]
+                        display_volume = pop_up_volume_df.loc[:, ticker].iat[0, 0]
+                        display_close_pct = round(pop_up_close_pct_df.loc[:, ticker].iat[0, 0], 2)
+                        display_ma_vol = pop_up_ma_vol_df.loc[:, ticker].iat[0, 0]
     
-                        pop_up_datetime = pop_up_datetime_idx_df.loc[:, ticker].values[0][0]
+                        pop_up_datetime = pop_up_datetime_idx_df.loc[:, ticker].iat[0, 0]
                         pop_up_hour = pd.to_datetime(pop_up_datetime).hour
                         pop_up_minute = pd.to_datetime(pop_up_datetime).minute
                         display_hour = ('0' + str(pop_up_hour)) if pop_up_hour < 10 else pop_up_hour
@@ -88,8 +88,7 @@ class UnusualVolumeRampUp(PatternAnalyser):
                         read_time_str = f'{pop_up_hour} {pop_up_minute}' if (pop_up_minute > 0) else f'{pop_up_hour} o clock' 
                         read_ticker_str = " ".join(ticker)
     
-                        logger.debug(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Close: {display_close}')
-                        print(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Close: {display_close}')
-                        text_to_speech_engine.say(f'{read_ticker_str} ramp up {display_close_pct} percent above {ma_val} M A volume at {read_time_str}')
-                        text_to_speech_engine.runAndWait()
+                        logger.debug(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Close: ${display_close}')
+                        print(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Close: ${display_close}')
+                        text_to_speech_engine.speak(f'{read_ticker_str} ramp up {display_close_pct} percent above {ma_val} M A volume at {read_time_str}')
 

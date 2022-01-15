@@ -13,12 +13,10 @@ from constant.candle.candle_colour import CandleColour
 
 from utils.datetime_util import is_normal_trading_hours, is_premarket_hours, is_postmarket_hours
 from utils.log_util import get_logger
-from utils.text_to_speech_util import get_text_to_speech_engine
 
 idx = pd.IndexSlice
 
 logger = get_logger(console_log=False)
-text_to_speech_engine = get_text_to_speech_engine()
 
 def update_snapshots(current_datetime, 
                     ticker_to_snapshots_dict, 
@@ -26,20 +24,23 @@ def update_snapshots(current_datetime,
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0'}
 
     async def retrieve_quotes(session, ticker):
-        url = f'https://finance.yahoo.com/quote/{ticker}'
-        async with session.get(url, headers=headers) as response:
-            assert response.status == 200
-            html = await response.text()
-            soup = BeautifulSoup(html, 'html.parser')
-            
-            if is_premarket_hours(current_datetime) or is_postmarket_hours(current_datetime):
-                previous_close = soup.findAll('fin-streamer', {'data-field': 'regularMarketPrice'})[-1].string
-            elif is_normal_trading_hours(current_datetime):
-                previous_close = soup.findAll('td', {'data-test': 'PREV_CLOSE-value'})[-1].string
-            else:
-                previous_close = soup.findAll('fin-streamer', {'data-field': 'regularMarketPrice'})[-1].string
+        try:
+            url = f'https://finance.yahoo.com/quote/{ticker}'
+            async with session.get(url, headers=headers) as response:
+                assert response.status == 200
+                html = await response.text()
+                soup = BeautifulSoup(html, 'html.parser')
 
-            result_dict[ticker] = previous_close.replace(',', '')
+                if is_premarket_hours(current_datetime) or is_postmarket_hours(current_datetime):
+                    previous_close = soup.findAll('fin-streamer', {'data-field': 'regularMarketPrice'})[-1].string
+                elif is_normal_trading_hours(current_datetime):
+                    previous_close = soup.findAll('td', {'data-test': 'PREV_CLOSE-value'})[-1].string
+                else:
+                    previous_close = soup.findAll('fin-streamer', {'data-field': 'regularMarketPrice'})[-1].string
+
+                result_dict[ticker] = previous_close.replace(',', '')
+        except Exception as e:
+            logger.error(f'Invalid ticker: {ticker}, Cause: {e}')
     
     async def create_session_and_asyn_tasks(ticker_list):
         async with aiohttp.ClientSession() as session:
@@ -51,12 +52,10 @@ def update_snapshots(current_datetime,
         loop = asyncio.get_event_loop()
         start_time = time.time()
         result_dict = {}
-        logger.debug(f'Old ticker to previous close dict: {ticker_to_snapshots_dict}')
         logger.debug(f'Retrieve previous close for tickers: {retrive_ticker_list}')
         loop.run_until_complete(create_session_and_asyn_tasks(retrive_ticker_list))
         ticker_to_snapshots_dict.update(result_dict)
         logger.debug(f'--- Total snapshots retrieval time from yfinance: {time.time() - start_time} seconds ---')
-        logger.debug(f'Retrieved snapshots data dictionary: {result_dict}')
         logger.debug(f'Updated ticker to previous close dict: {ticker_to_snapshots_dict}')
 
 def append_custom_statistics(candle_df: DataFrame, ticker_to_snapshots_dict: dict) -> DataFrame:

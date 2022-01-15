@@ -16,8 +16,7 @@ from constant.filter.pattern import Pattern
 
 from factory.pattern_analyser_factory import PatternAnalyserFactory
 
-from utils.datetime_util import convert_datetime_format_str, get_trading_session_start_datetime
-from utils.filter_util import get_contract
+from utils.datetime_util import get_current_datetime, get_trading_session_start_datetime
 from utils.log_util import get_logger
 from utils.stock_data_util import append_custom_statistics, update_snapshots
 
@@ -29,21 +28,19 @@ class IBConnector(EWrapper, EClient):
         EClient.__init__(self, self)
         self.__timeframe_list = [Timeframe.ONE_MINUTE, Timeframe.FIVE_MINUTE]
         self.__pattern_list = [[Pattern.INITIAL_POP_UP, Pattern.UNUSUAL_VOLUME_RAMP_UP], []]
-        self.__scanner_result_list = []
         self.__ticker_to_snapshots = {}
         self.__start_time = None
 
     def error(self, reqId: TickerId, errorCode: int, errorString: str):
-        super().error(reqId, errorCode, errorString)
-
         ''' Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only 
         notification that a connector has been made successfully to the IB market data farms. '''
-        if errorCode == 2104 or errorCode == 2106 or errorCode == 2158 or errorCode == 2108:
+        if errorCode == 2104 or errorCode == 2105 or errorCode == 2106 or errorCode == 2158 or errorCode == 2108:
             connect_success_msg = f'reqId: {reqId}, Connection Success, {errorString}'
             logger.debug(connect_success_msg)
-        elif errorCode == 1100 or errorCode == 1101 or errorCode == 1102 or errorCode == 2110:
+        elif errorCode == 1100 or errorCode == 1101 or errorCode == 1102 or errorCode == 2110 or errorCode == 2103:
             raise ConnectionException(errorString)
         else:
+            print(self.__contract)
             raise Exception(errorString)
 
     def historicalData(self, reqId, bar):
@@ -89,14 +86,19 @@ class IBConnector(EWrapper, EClient):
             logger.debug(f'--- Total historical data retrieval and analysis time: {time.time() - self.__start_time} seconds ---')
 
     def __get_historical_data_and_analyse(self):
-        current_datetime = datetime.now(timezone('US/Eastern')).replace(microsecond=0, tzinfo=None)
+        current_datetime = get_current_datetime()
         update_snapshots(current_datetime, self.__ticker_to_snapshots, self.__scanner_result_list)
 
         req_id_multiplier = len(self.__scanner_result_list)
-        retrieve_candle_start_datetime = get_trading_session_start_datetime()
+        retrieve_candle_start_datetime = get_trading_session_start_datetime(current_datetime)
+
         timeframe_interval = (current_datetime - retrieve_candle_start_datetime).seconds
         truncate_seconds = timeframe_interval % 60
         timeframe_interval = timeframe_interval - truncate_seconds
+
+        #Minimum timeframe interval is less than 60 seconds 
+        if timeframe_interval < 60:
+            return
 
         self.__timeframe_idx_to_ohlcv_list_dict = {}
         self.__timeframe_idx_to_datetime_list_dict = {}
@@ -107,9 +109,8 @@ class IBConnector(EWrapper, EClient):
             self.__timeframe_idx_to_datetime_list_dict[timeframe_idx] = []
             self.__timeframe_idx_to_concat_df_list_dict[timeframe_idx] = []
 
-            for index, ticker in enumerate(self.__scanner_result_list, start=1):
+            for index, contract in enumerate(self.__contract_list, start=1):
                 candle_req_id = (timeframe_idx * req_id_multiplier) + index
-                contract = get_contract(ticker)
                 self.reqHistoricalData(candle_req_id, contract, '', timeframe_interval, timeframe.value, 'TRADES', 0, 1, False, [])
     
     def scannerData(self, reqId: int, rank: int, contractDetails: ContractDetails, distance: str, benchmark: str, projection: str, legsStr: str):
@@ -118,8 +119,11 @@ class IBConnector(EWrapper, EClient):
                 logger.debug(f'Scanner refresh interval time: {time.time() - self.__start_time} seconds')
             self.__start_time = time.time()
             self.__scanner_result_list = []
-        
+            self.__contract_list = []
+
         self.__scanner_result_list.append(contractDetails.contract.symbol)
+        self.__contract_list.append(contractDetails.contract)
+        self.__contract = contractDetails.contract
 
     #scannerDataEnd marker will indicate when all results have been delivered.
     #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...).

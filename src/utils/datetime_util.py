@@ -1,14 +1,12 @@
 from datetime import datetime
 from pytz import timezone
 
-def is_current_date_weekday(timezone):
-    current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
+def is_current_date_weekday():
+    current_datetime = get_current_datetime()
     is_weekday = True if (current_datetime.weekday() < 5) else False
     return is_weekday
 
-def get_trading_session_start_datetime(timezone=timezone('US/Eastern')):
-    current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
-
+def get_trading_session_start_datetime(current_datetime):
     current_year = current_datetime.year
     current_month = current_datetime.month
     current_day = current_datetime.day
@@ -23,14 +21,10 @@ def get_trading_session_start_datetime(timezone=timezone('US/Eastern')):
         start_datetime = market_open_datetime
     elif is_postmarket_hours(current_datetime):
         start_datetime = post_market_start_datetime
-    elif is_out_of_normal_trading_hours(current_datetime):
-        raise Exception(f'Current datetime is not trading hours, current datetime: {current_datetime}')
 
     return start_datetime
 
-def is_premarket_hours(current_datetime, timezone=timezone('US/Eastern')):
-    current_datetime = datetime.now(timezone).replace(microsecond=0, tzinfo=None)
-
+def is_premarket_hours(current_datetime):
     current_year = current_datetime.year
     current_month = current_datetime.month
     current_day = current_datetime.day
@@ -38,7 +32,7 @@ def is_premarket_hours(current_datetime, timezone=timezone('US/Eastern')):
     pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
-    if current_datetime > pre_market_start_datetime and current_datetime < market_open_datetime:
+    if current_datetime >= pre_market_start_datetime and current_datetime < market_open_datetime:
         return True
     else:
         return False
@@ -51,7 +45,7 @@ def is_normal_trading_hours(current_datetime):
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
 
-    if current_datetime > market_open_datetime and current_datetime < post_market_start_datetime:
+    if current_datetime >= market_open_datetime and current_datetime < post_market_start_datetime:
         return True
     else:
         return False
@@ -69,17 +63,8 @@ def is_postmarket_hours(current_datetime):
     else:
         return False
 
-def is_out_of_normal_trading_hours(current_datetime):
-    current_year = current_datetime.year
-    current_month = current_datetime.month
-    current_day = current_datetime.day
-
-    post_market_end_datetime = datetime(current_year, current_month, current_day, 20, 0, 0)
-
-    if current_datetime > post_market_end_datetime:
-        return True
-    else:
-        return False
+def get_current_datetime(timezone=timezone('US/Eastern')):
+    return datetime.now(timezone).replace(microsecond=0, tzinfo=None)
 
 def convert_datetime_format_str(
             datetime_str: str, 

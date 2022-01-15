@@ -9,11 +9,11 @@ from constant.candle.candle_colour import CandleColour
 from pattern.pattern_analyser import PatternAnalyser
 
 from utils.log_util import get_logger
-from utils.text_to_speech_util import get_text_to_speech_engine
+from model.text_to_speech_engine import TextToSpeechEngine
 from utils.dataframe_util import derive_idx_df
 
 logger = get_logger(console_log=False)
-text_to_speech_engine = get_text_to_speech_engine()
+text_to_speech_engine = TextToSpeechEngine()
 
 idx = pd.IndexSlice
 
@@ -23,9 +23,9 @@ class InitialPopUp(PatternAnalyser):
 
     def analyse(self) -> None:
         min_marubozu_ratio = 40
-        min_close_pct = 5
+        min_close_pct = 4.6
         min_previous_close_pct = 6
-        max_ramp_occurrence = 4
+        max_ramp_occurrence = 5
         notify_period = 3
 
         candle_colour_df = self.__historical_data_df.loc[:, idx[:, CustomisedIndicator.CANDLE_COLOUR]].rename(columns={CustomisedIndicator.CANDLE_COLOUR: RuntimeIndicator.COMPARE})
@@ -46,10 +46,6 @@ class InitialPopUp(PatternAnalyser):
         new_gainer_ticker_list = new_gainer_result_series.index[new_gainer_result_series].get_level_values(0).tolist()
 
         if len(new_gainer_ticker_list) > 0:
-            logger.debug('green_candle_df: \n' + green_candle_df.to_string().replace('\n', '\n\t'))
-            logger.debug('marubozu_boolean_df: \n' + marubozu_boolean_df.to_string().replace('\n', '\n\t'))
-            logger.debug('candle_close_pct_boolean_df: \n' + candle_close_pct_boolean_df.to_string().replace('\n', '\n\t'))
-            logger.debug('previous_close_pct_boolean_df: \n' + previous_close_pct_boolean_df.to_string().replace('\n', '\n\t'))
             logger.debug('Ramp Up Boolean DataFrame: \n' + ramp_up_boolean_df.to_string().replace('\n', '\n\t'))
             logger.debug('Ramp Up Occurrence DataFrame: \n' + ramp_up_occurrence_df.to_string().replace('\n', '\n\t'))
             logger.debug('Result DataFrame: \n' + result_boolean_df.to_string().replace('\n', '\n\t'))
@@ -68,12 +64,12 @@ class InitialPopUp(PatternAnalyser):
             pop_up_datetime_idx_df = datetime_idx_df.where(ramp_up_boolean_df.values).ffill().iloc[[-1]]
 
             for ticker in new_gainer_ticker_list:
-                display_close = pop_up_close_df.loc[:, ticker].values[0][0]
-                display_volume = pop_up_volume_df.loc[:, ticker].values[0][0]
-                display_close_pct = round(pop_up_close_pct_df.loc[:, ticker].values[0][0], 2)
-                display_previous_close_pct = round(pop_up_previous_close_pct_df.loc[:, ticker].values[0][0], 2)
+                display_close = pop_up_close_df.loc[:, ticker].iat[0, 0]
+                display_volume = pop_up_volume_df.loc[:, ticker].iat[0, 0]
+                display_close_pct = round(pop_up_close_pct_df.loc[:, ticker].iat[0, 0], 2)
+                display_previous_close_pct = round(pop_up_previous_close_pct_df.loc[:, ticker].iat[0, 0], 2)
 
-                pop_up_datetime = pop_up_datetime_idx_df.loc[:, ticker].values[0][0]
+                pop_up_datetime = pop_up_datetime_idx_df.loc[:, ticker].iat[0, 0]
                 pop_up_hour = pd.to_datetime(pop_up_datetime).hour
                 pop_up_minute = pd.to_datetime(pop_up_datetime).minute
                 display_hour = ('0' + str(pop_up_hour)) if pop_up_hour < 10 else pop_up_hour
@@ -82,7 +78,6 @@ class InitialPopUp(PatternAnalyser):
                 read_time_str = f'{pop_up_hour} {pop_up_minute}' if (pop_up_minute > 0) else f'{pop_up_hour} o clock' 
                 read_ticker_str = " ".join(ticker)
 
-                logger.debug(f'{ticker} is popping up {display_previous_close_pct}%, Time: {display_time_str}, Close: {display_close}, Change: {display_close_pct}, Volume: {display_volume}')
-                print(f'{ticker} is popping up {display_previous_close_pct}%, Time: {display_time_str}, Close: {display_close}, Change: {display_close_pct}, Volume: {display_volume}')
-                text_to_speech_engine.say(f'{read_ticker_str} is popping up {display_previous_close_pct} percent at {read_time_str}')
-                text_to_speech_engine.runAndWait()
+                logger.debug(f'{ticker} is popping up {display_previous_close_pct}%, Time: {display_time_str}, Close: ${display_close}, Change: {display_close_pct}%, Volume: {display_volume}')
+                print(f'{ticker} is popping up {display_previous_close_pct}%, Time: {display_time_str}, Close: ${display_close}, Change: {display_close_pct}%, Volume: {display_volume}')
+                text_to_speech_engine.speak(f'{read_ticker_str} is popping up {display_previous_close_pct} percent at {read_time_str}')

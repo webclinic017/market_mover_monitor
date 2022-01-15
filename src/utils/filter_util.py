@@ -29,12 +29,3 @@ def get_filter(
     scannerFilter.numberOfRows = no_of_result
 
     return scannerFilter
-
-def get_contract(ticker: str) -> Contract:
-    contract = Contract()
-    contract.symbol = ticker
-    contract.secType = Instrument.STOCKS.value
-    contract.exchange = 'SMART'
-    contract.currency = 'USD'
-    
-    return contract
