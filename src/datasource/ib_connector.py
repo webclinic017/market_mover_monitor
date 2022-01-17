@@ -34,10 +34,13 @@ class IBConnector(EWrapper, EClient):
     def error(self, reqId: TickerId, errorCode: int, errorString: str):
         ''' Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only 
         notification that a connector has been made successfully to the IB market data farms. '''
-        if errorCode == 2104 or errorCode == 2105 or errorCode == 2106 or errorCode == 2158 or errorCode == 2108:
+        success_error_code_list = [2104, 2105, 2106, 2108, 2158]
+        connection_error_code_list = [1100, 1101, 1102, 2110, 2103]
+
+        if errorCode in success_error_code_list:
             connect_success_msg = f'reqId: {reqId}, Connection Success, {errorString}'
             logger.debug(connect_success_msg)
-        elif errorCode == 1100 or errorCode == 1101 or errorCode == 1102 or errorCode == 2110 or errorCode == 2103:
+        elif errorCode in connection_error_code_list:
             raise ConnectionException(errorString)
         else:
             print(self.__contract)
