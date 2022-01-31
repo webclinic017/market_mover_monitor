@@ -1,3 +1,5 @@
+import time
+
 from pandas.core.frame import DataFrame
 import pandas as pd
 from constant.candle.candle_colour import CandleColour
@@ -22,6 +24,7 @@ class UnusualVolumeRampUp(PatternAnalyser):
         self.__historical_data_df = historical_data_df
 
     def analyse(self) -> None:
+        start_time = time.time()
         min_marubozu_ratio = 40
         min_close_pct = 2
         min_volume = 3000
@@ -52,7 +55,6 @@ class UnusualVolumeRampUp(PatternAnalyser):
         above_vol_20_ma_ticker_list = [ticker for ticker in above_vol_20_ma_ticker_list if ticker not in above_vol_50_ma_ticker_list]
         
         if len(above_vol_20_ma_ticker_list) > 0 or len(above_vol_50_ma_ticker_list) > 0:
-            logger.debug('Full historical DataFrame: \n' + self.__historical_data_df.loc[:, idx[:, [Indicator.VOLUME, CustomisedIndicator.CLOSE_CHANGE, CustomisedIndicator.MA_20_VOLUME, CustomisedIndicator.MA_50_VOLUME, CustomisedIndicator.CANDLE_COLOUR, CustomisedIndicator.MARUBOZU_RATIO]]].to_string().replace('\n', '\n\t'))
             result_ticker_list = [above_vol_20_ma_ticker_list, above_vol_50_ma_ticker_list]
 
             for list_idx, ticker_list in enumerate(result_ticker_list):
@@ -60,9 +62,6 @@ class UnusualVolumeRampUp(PatternAnalyser):
                     ma_val = '20' if (list_idx == 0) else '50'
                     above_ma_df = above_vol_20_ma_boolean_df if (list_idx == 0) else above_vol_50_ma_boolean_df
                     ma_vol_df = vol_20_ma_df if (list_idx == 0) else vol_50_ma_df
-                    
-                    logger.debug('Ramp Up Boolean DataFrame: \n' + ramp_up_boolean_df.to_string().replace('\n', '\n\t'))
-                    logger.debug('Above {ma_val} MA Boolean DataFrame: \n' + above_ma_df.to_string().replace('\n', '\n\t'))
     
                     datetime_idx_df = derive_idx_df(above_ma_df, numeric_idx=False)
                     close_df = self.__historical_data_df.loc[:, idx[:, Indicator.CLOSE]]
@@ -88,7 +87,9 @@ class UnusualVolumeRampUp(PatternAnalyser):
                         read_time_str = f'{pop_up_hour} {pop_up_minute}' if (pop_up_minute > 0) else f'{pop_up_hour} o clock' 
                         read_ticker_str = " ".join(ticker)
     
-                        logger.debug(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Close: ${display_close}')
-                        print(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Close: ${display_close}')
-                        text_to_speech_engine.speak(f'{read_ticker_str} ramp up {display_close_pct} percent above {ma_val} M A volume at {read_time_str}')
+                        logger.debug(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Volume ratio: {round((float(display_volume)/ display_ma_vol), 1)}, Close: ${display_close}')
+                        print(f'{ticker} ramp up {display_close_pct}% above {ma_val}MA volume, Time: {display_time_str}, {ma_val}MA volume: {display_ma_vol}, Volume: {display_volume}, Volume ratio: {round((float(display_volume)/ display_ma_vol), 1)}, Close: ${display_close}')
+                        text_to_speech_engine.speak(f'{read_ticker_str} ramp up {display_close_pct} percent above {ma_val} M A volume at {read_time_str}, Ratio: {round((float(display_volume)/ display_ma_vol), 1)}')
+
+        logger.debug(f'Unusual volume analyse time: {time.time() - start_time}')
 

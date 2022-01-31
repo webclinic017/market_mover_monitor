@@ -1,3 +1,5 @@
+import time
+
 from pandas.core.frame import DataFrame
 import pandas as pd
 
@@ -22,6 +24,7 @@ class InitialPopUp(PatternAnalyser):
         self.__historical_data_df = historical_data_df
 
     def analyse(self) -> None:
+        start_time = time.time()
         min_marubozu_ratio = 40
         min_close_pct = 4.6
         min_previous_close_pct = 6
@@ -46,12 +49,6 @@ class InitialPopUp(PatternAnalyser):
         new_gainer_ticker_list = new_gainer_result_series.index[new_gainer_result_series].get_level_values(0).tolist()
 
         if len(new_gainer_ticker_list) > 0:
-            logger.debug('Ramp Up Boolean DataFrame: \n' + ramp_up_boolean_df.to_string().replace('\n', '\n\t'))
-            logger.debug('Ramp Up Occurrence DataFrame: \n' + ramp_up_occurrence_df.to_string().replace('\n', '\n\t'))
-            logger.debug('Result DataFrame: \n' + result_boolean_df.to_string().replace('\n', '\n\t'))
-            logger.debug(f'Candle DataFrame Timeframe Length: {len(previous_close_pct_df)}')
-            logger.debug('Full initial pop up historical DataFrame: \n' + self.__historical_data_df.loc[:, idx[:, [CustomisedIndicator.CANDLE_COLOUR, CustomisedIndicator.MARUBOZU_RATIO, Indicator.OPEN, Indicator.CLOSE, CustomisedIndicator.CLOSE_CHANGE, CustomisedIndicator.PREVIOUS_CLOSE_CHANGE]]].to_string().replace('\n', '\n\t'))
-
             datetime_idx_df = derive_idx_df(ramp_up_occurrence_df, numeric_idx=False)
             close_df = self.__historical_data_df.loc[:, idx[:, Indicator.CLOSE]]
             previous_close_df = self.__historical_data_df.loc[:, idx[:, CustomisedIndicator.PREVIOUS_CLOSE_CHANGE]]
@@ -81,3 +78,5 @@ class InitialPopUp(PatternAnalyser):
                 logger.debug(f'{ticker} is popping up {display_previous_close_pct}%, Time: {display_time_str}, Close: ${display_close}, Change: {display_close_pct}%, Volume: {display_volume}')
                 print(f'{ticker} is popping up {display_previous_close_pct}%, Time: {display_time_str}, Close: ${display_close}, Change: {display_close_pct}%, Volume: {display_volume}')
                 text_to_speech_engine.speak(f'{read_ticker_str} is popping up {display_previous_close_pct} percent at {read_time_str}')
+
+        logger.debug(f'Initial pop up analyse time: {time.time() - start_time}')

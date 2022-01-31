@@ -80,7 +80,6 @@ class IBConnector(EWrapper, EClient):
                 if len(pattern_list) > 0:
                     concat_df_list = self.__timeframe_idx_to_concat_df_list_dict[timeframe_idx]
                     complete_historical_data_df = append_custom_statistics(pd.concat(concat_df_list, axis=1), self.__ticker_to_snapshots)
-                    logger.debug('Full candle DataFrame: \n' + complete_historical_data_df.to_string().replace('\n', '\n\t'))
 
                     for pattern in pattern_list:
                         pattern_analyzer = PatternAnalyserFactory.get_pattern_analyser(pattern, complete_historical_data_df)

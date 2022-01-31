@@ -58,7 +58,7 @@ def main():
         logger.exception(f'{display_msg}, Cause: {e}')
 
         if is_connection_exception:
-            time.sleep(60)
+            time.sleep(80)
             main()
 
 if __name__ == '__main__':

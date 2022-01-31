@@ -1,7 +1,7 @@
 import pyttsx3
 
 class TextToSpeechEngine:
-    def __init__(self, speed: int = 188, volume: int = 1):
+    def __init__(self, speed: int = 195, volume: int = 1):
         self.__text_to_speech_engine = pyttsx3.init()
 
         self.__text_to_speech_engine.setProperty('voice', self.__text_to_speech_engine.getProperty('voices')[1].id)
