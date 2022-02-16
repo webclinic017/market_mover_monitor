@@ -26,7 +26,7 @@ class UnusualVolumeRampUp(PatternAnalyser):
     def analyse(self) -> None:
         start_time = time.time()
         min_marubozu_ratio = 40
-        min_close_pct = 2
+        min_close_pct = 1.2
         min_volume = 3000
         notify_period = 3
 

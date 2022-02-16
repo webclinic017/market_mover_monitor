@@ -15,6 +15,8 @@ def get_trading_session_start_datetime(current_datetime):
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
+    start_datetime = None
+    
     if is_premarket_hours(current_datetime):
         start_datetime = pre_market_start_datetime
     elif is_normal_trading_hours(current_datetime):
@@ -29,7 +31,7 @@ def is_premarket_hours(current_datetime):
     current_month = current_datetime.month
     current_day = current_datetime.day
 
-    pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 0, 0)
+    pre_market_start_datetime = datetime(current_year, current_month, current_day, 4, 1, 0)
     market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
 
     if current_datetime >= pre_market_start_datetime and current_datetime < market_open_datetime:
@@ -42,7 +44,7 @@ def is_normal_trading_hours(current_datetime):
     current_month = current_datetime.month
     current_day = current_datetime.day
 
-    market_open_datetime = datetime(current_year, current_month, current_day, 9, 30, 0)
+    market_open_datetime = datetime(current_year, current_month, current_day, 9, 31, 0)
     post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
 
     if current_datetime >= market_open_datetime and current_datetime < post_market_start_datetime:
@@ -55,7 +57,7 @@ def is_postmarket_hours(current_datetime):
     current_month = current_datetime.month
     current_day = current_datetime.day
 
-    post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 0, 0)
+    post_market_start_datetime = datetime(current_year, current_month, current_day, 16, 1, 0)
     post_market_end_datetime = datetime(current_year, current_month, current_day, 20, 0, 0)
 
     if current_datetime >= post_market_start_datetime and current_datetime < post_market_end_datetime:

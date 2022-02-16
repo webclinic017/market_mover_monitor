@@ -43,7 +43,6 @@ class IBConnector(EWrapper, EClient):
         elif errorCode in connection_error_code_list:
             raise ConnectionException(errorString)
         else:
-            print(self.__contract)
             raise Exception(errorString)
 
     def historicalData(self, reqId, bar):
@@ -94,6 +93,9 @@ class IBConnector(EWrapper, EClient):
         req_id_multiplier = len(self.__scanner_result_list)
         retrieve_candle_start_datetime = get_trading_session_start_datetime(current_datetime)
 
+        if retrieve_candle_start_datetime == None:
+            return
+
         timeframe_interval = (current_datetime - retrieve_candle_start_datetime).seconds
         truncate_seconds = timeframe_interval % 60
         timeframe_interval = timeframe_interval - truncate_seconds
@@ -125,7 +127,6 @@ class IBConnector(EWrapper, EClient):
 
         self.__scanner_result_list.append(contractDetails.contract.symbol)
         self.__contract_list.append(contractDetails.contract)
-        self.__contract = contractDetails.contract
 
     #scannerDataEnd marker will indicate when all results have been delivered.
     #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...).
