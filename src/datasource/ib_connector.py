@@ -1,8 +1,8 @@
-from datetime import datetime
-
-from pytz import timezone
 from constant.timeframe import Timeframe
+
 from exception.connection_exception import ConnectionException
+from exception.after_hour_reset_exception import AfterHourResetException
+
 from ibapi.client import EClient
 from ibapi.common import TickerId
 from ibapi.contract import ContractDetails
@@ -10,26 +10,28 @@ from ibapi.wrapper import EWrapper
 
 import pandas as pd
 import time
+import re
 
 from constant.indicator.indicator import Indicator
 from constant.filter.pattern import Pattern
 
 from factory.pattern_analyser_factory import PatternAnalyserFactory
 
-from utils.datetime_util import get_current_datetime, get_trading_session_start_datetime
+from utils.datetime_util import get_current_datetime, get_trading_session_start_datetime, is_postmarket_hours
 from utils.log_util import get_logger
 from utils.stock_data_util import append_custom_statistics, update_snapshots
 
 logger = get_logger(console_log=False)
 
 class IBConnector(EWrapper, EClient):
-    def __init__(self):
+    def __init__(self, is_after_hour):
         EWrapper.__init__(self)
         EClient.__init__(self, self)
         self.__timeframe_list = [Timeframe.ONE_MINUTE, Timeframe.FIVE_MINUTE]
         self.__pattern_list = [[Pattern.INITIAL_POP_UP, Pattern.UNUSUAL_VOLUME_RAMP_UP], []]
         self.__ticker_to_snapshots = {}
         self.__start_time = None
+        self.__is_after_hour = is_after_hour
 
     def error(self, reqId: TickerId, errorCode: int, errorString: str):
         ''' Callbacks to EWrapper with errorId as -1 do not represent true 'errors' but only 
@@ -88,6 +90,10 @@ class IBConnector(EWrapper, EClient):
 
     def __get_historical_data_and_analyse(self):
         current_datetime = get_current_datetime()
+
+        if not self.__is_after_hour and is_postmarket_hours(current_datetime):
+            raise AfterHourResetException()
+
         update_snapshots(current_datetime, self.__ticker_to_snapshots, self.__scanner_result_list)
 
         req_id_multiplier = len(self.__scanner_result_list)
@@ -124,9 +130,12 @@ class IBConnector(EWrapper, EClient):
             self.__start_time = time.time()
             self.__scanner_result_list = []
             self.__contract_list = []
-
-        self.__scanner_result_list.append(contractDetails.contract.symbol)
-        self.__contract_list.append(contractDetails.contract)
+        
+        if re.match('^[a-zA-Z]{1,4}$', contractDetails.contract.symbol): 
+            self.__scanner_result_list.append(contractDetails.contract.symbol)
+            self.__contract_list.append(contractDetails.contract)
+        else:
+            logger.debug(f'Exclud invalid ticker of {contractDetails.contract.symbol} from scanner result')
 
     #scannerDataEnd marker will indicate when all results have been delivered.
     #The returned results to scannerData simply consists of a list of contracts, no market data field (bid, ask, last, volume, ...).

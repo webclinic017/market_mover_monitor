@@ -1,0 +1,2 @@
+class AfterHourResetException(Exception):
+    pass
