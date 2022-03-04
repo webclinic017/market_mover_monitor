@@ -34,7 +34,7 @@ def main():
                     scan_code = ScanCode.TOP_GAINERS.value
                     is_after_hour = False
                 elif is_postmarket_hours(current_datetime):
-                    scan_code = ScanCode.TOP_GAINERS_IN_AFTER_HOURS
+                    scan_code = ScanCode.TOP_GAINERS_IN_AFTER_HOURS.value
                     is_after_hour = True
 
                 print('Listening...')
